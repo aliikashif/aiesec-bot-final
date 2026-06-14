@@ -1,0 +1,31 @@
+# Core RAG dependencies
+langchain==0.3.25
+langchain-community==0.3.23
+langchain-groq==0.3.2
+langchain-huggingface==0.1.2
+
+# PostgreSQL / pgvector backend
+pgvector==0.3.6
+psycopg2-binary==2.9.12
+sqlalchemy==2.0.50
+langchain-postgres==0.0.17
+psycopg==3.3.4
+
+# Pin langsmith to 0.1.x — versions 0.2+ introduced zstandard which has no
+# pre-built wheel for Python 3.14, causing source-compilation failures on Windows
+# without Visual Studio Build Tools installed.
+langsmith==0.1.147
+
+# LLM & embeddings
+groq==0.28.0
+sentence-transformers==3.4.1
+google-genai
+
+# Document loading
+pypdf==5.4.0
+
+# Frontend
+streamlit==1.45.1
+
+# Utilities
+python-dotenv==1.1.0
