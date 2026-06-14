@@ -1,8 +1,10 @@
 # Core RAG dependencies
 langchain==0.3.25
+langchain-core==0.3.59
 langchain-community==0.3.23
 langchain-groq==0.3.2
 langchain-huggingface==0.1.2
+langchain-text-splitters==0.3.8
 
 # PostgreSQL / pgvector backend
 pgvector==0.3.6
@@ -19,13 +21,14 @@ langsmith==0.1.147
 # LLM & embeddings
 groq==0.28.0
 sentence-transformers==3.4.1
-google-genai
+google-genai==1.15.0
 
 # Document loading
 pypdf==5.4.0
 
-# Frontend
-streamlit==1.45.1
+# Backend
+fastapi==0.115.0
+uvicorn==0.34.0
 
 # Utilities
 python-dotenv==1.1.0

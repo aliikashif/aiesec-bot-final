@@ -18,10 +18,10 @@ Conversation memory is handled by ConversationalRetrievalChain:
 import os
 import re
 import time
+from functools import lru_cache
 from google import genai
 from pathlib import Path
 
-import streamlit as st
 from dotenv import load_dotenv
 from langchain_postgres import PGVector
 from langchain_groq import ChatGroq
@@ -94,13 +94,13 @@ def get_db_url() -> str:
     return db_url
 
 
-@st.cache_resource
+@lru_cache(maxsize=None)
 def _load_embeddings() -> HuggingFaceEmbeddings:
     """
     Initialise the HuggingFace embedding model.
     Runs 100 % locally — no API key required.
-    Decorated with @st.cache_resource so the model is loaded once per
-    process and shared across all Streamlit reruns and users.
+    Decorated with @lru_cache(maxsize=None) so the model is loaded once per
+    process and shared across all reruns and users.
     """
     # TODO: query_encode_kwargs={"prompt": "Represent this sentence: "} is not 
     # supported in langchain-huggingface==0.1.2 (throws pydantic extra_forbidden).
@@ -112,12 +112,12 @@ def _load_embeddings() -> HuggingFaceEmbeddings:
     )
 
 
-@st.cache_resource
+@lru_cache(maxsize=None)
 def load_vector_store() -> PGVector | None:
     """
     Open the existing Supabase pgvector collection.
     Returns None (with a descriptive exception) if the DB is missing or empty.
-    Decorated with @st.cache_resource so the client is initialised
+    Decorated with @lru_cache(maxsize=None) so the client is initialised
     once per process and reused on every subsequent call.
     """
     try:
