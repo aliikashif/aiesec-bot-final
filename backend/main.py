@@ -18,7 +18,7 @@ from generate_summaries import generate_summary_for_file
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174"],
+    allow_origins=["http://localhost:5173", "http://localhost:5174", "https://aiesec-bot-final.vercel.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -31,12 +31,8 @@ class ChatRequest(BaseModel):
     question: str
     chat_history: List[List[str]] = []
 
-# Initialize vector_store globally
-try:
-    vector_store = load_vector_store()
-except Exception as e:
-    vector_store = None
-    print(f"Failed to load vector store on startup: {e}")
+# Lazy-loaded on first request — see /chat and /chat/stream
+vector_store = None
 
 
 @app.get("/")
@@ -87,7 +83,11 @@ def chat_stream(request: ChatRequest):
                 yield f'data: {json.dumps({"type": "token", "value": word + " "})}\n\n'
                 await asyncio.sleep(0.03)
                 
-            yield f'data: {json.dumps({"type": "done", "confidence": result.get("confidence"), "sources": result.get("sources"), "farewell": result.get("farewell")})}\n\n'
+            source_docs_serialized = [
+                {"page_content": doc.page_content, "metadata": doc.metadata}
+                for doc in result.get("source_documents", [])
+            ]
+            yield f'data: {json.dumps({"type": "done", "confidence": result.get("confidence"), "sources": result.get("sources"), "farewell": result.get("farewell"), "source_documents": source_docs_serialized})}\n\n'
         except Exception as e:
             yield f'data: {json.dumps({"type": "error", "message": str(e)})}\n\n'
 
@@ -161,9 +161,6 @@ def upload_document(file: UploadFile = File(...)):
         ingest_path = f"documents/{filename}"
         run_ingestion(file_paths=[ingest_path], clear_collection=False)
         
-        # Invalidate vector store cache
-        load_vector_store.cache_clear()
-        
         return {"status": "ok", "filename": filename}
     except Exception as e:
         if file_path.exists():
@@ -201,8 +198,6 @@ def delete_document(filename: str):
         
         conn.commit()
         cur.close()
-        
-        load_vector_store.cache_clear()
         
         return {"status": "deleted", "filename": filename}
     except Exception as e:
@@ -245,3 +240,68 @@ def download_document(filename: str):
         media_type="application/pdf",
         filename=filename
     )
+
+
+class FollowupRequest(BaseModel):
+    question: str
+    answer: str
+    source_documents: List[dict] = []
+
+
+@app.post("/followups")
+def get_followup_suggestions(request: FollowupRequest):
+    if not request.source_documents:
+        return {"followups": []}
+
+    groq_api_key = os.getenv("GROQ_API_KEY")
+    if not groq_api_key:
+        return {"followups": []}
+
+    try:
+        import re
+        from groq import Groq
+        groq_client = Groq(api_key=groq_api_key)
+
+        # Build prompt using source document texts
+        docs_text = "\n\n".join([doc.get("page_content", "") for doc in request.source_documents if isinstance(doc, dict)])
+
+        prompt = (
+            "You are generating exactly 3 follow-up questions that a user might want to ask next after receiving an answer to their previous question.\n"
+            "Here is the context and history:\n"
+            f"User Question: {request.question}\n"
+            f"Bot Answer: {request.answer}\n\n"
+            f"Source Document Chunks:\n{docs_text}\n\n"
+            "Instructions:\n"
+            "1. Only suggest follow-up questions that can be answered using the document chunks provided above.\n"
+            "2. Do not invent questions about topics not covered in these chunks.\n"
+            "3. Keep each question short, natural, and conversational.\n"
+            "4. Respond with EXACTLY a JSON array of 3 strings and absolutely nothing else. Do not wrap in markdown code blocks, do not write a preamble, do not write any text other than the raw JSON array (e.g. [\"question 1\", \"question 2\", \"question 3\"])."
+        )
+
+        chat_completion = groq_client.chat.completions.create(
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+            model="llama-3.1-8b-instant",
+            temperature=0.7,
+        )
+
+        content = chat_completion.choices[0].message.content.strip()
+
+        # Clean markdown code block fences if present
+        if content.startswith("```"):
+            content = re.sub(r"^```(?:json)?\n?", "", content, flags=re.IGNORECASE)
+            content = re.sub(r"\n?```$", "", content)
+        content = content.strip()
+
+        followups = json.loads(content)
+        if isinstance(followups, list):
+            followups = [str(x) for x in followups[:3]]
+            return {"followups": followups}
+        return {"followups": []}
+    except Exception as e:
+        print(f"[ERROR] Failed to generate followups: {e}")
+        return {"followups": []}
