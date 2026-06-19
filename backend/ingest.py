@@ -16,7 +16,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings
+from rag import LightweightBGEEmbeddings
 from langchain_postgres import PGVector
 
 # Load environment variables from .env
@@ -110,11 +110,7 @@ def create_vector_store(chunks: list) -> PGVector:
     in Supabase pgvector.
     """
     print(f"\n[EMBED] Loading embedding model '{EMBEDDING_MODEL}' ...")
-    embeddings = HuggingFaceEmbeddings(
-        model_name=EMBEDDING_MODEL,
-        model_kwargs={"device": "cpu"},
-        encode_kwargs={"normalize_embeddings": True},
-    )
+    embeddings = LightweightBGEEmbeddings()
 
     db_url = get_db_url()
 
@@ -162,11 +158,7 @@ def run_ingestion(file_paths: list = None, clear_collection: bool = False, progr
     except Exception as e:
         raise ValueError(f"Configuration error: {e}")
 
-    embeddings = HuggingFaceEmbeddings(
-        model_name=EMBEDDING_MODEL,
-        model_kwargs={"device": "cpu"},
-        encode_kwargs={"normalize_embeddings": True},
-    )
+    embeddings = LightweightBGEEmbeddings()
 
     try:
         vector_store = PGVector(

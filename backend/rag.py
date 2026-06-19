@@ -25,7 +25,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 from langchain_postgres import PGVector
 from langchain_groq import ChatGroq
-from langchain_huggingface import HuggingFaceEmbeddings
+from transformers import AutoTokenizer, AutoModel
+import torch
 from langchain.chains import ConversationalRetrievalChain
 from langchain.prompts import (
     SystemMessagePromptTemplate,
@@ -94,22 +95,36 @@ def get_db_url() -> str:
     return db_url
 
 
-@lru_cache(maxsize=None)
-def _load_embeddings() -> HuggingFaceEmbeddings:
-    """
-    Initialise the HuggingFace embedding model.
-    Runs 100 % locally — no API key required.
-    Decorated with @lru_cache(maxsize=None) so the model is loaded once per
-    process and shared across all reruns and users.
-    """
-    # TODO: query_encode_kwargs={"prompt": "Represent this sentence: "} is not 
-    # supported in langchain-huggingface==0.1.2 (throws pydantic extra_forbidden).
-    # Update to a newer langchain-huggingface version to enable native BGE query prompts.
-    return HuggingFaceEmbeddings(
-        model_name=EMBEDDING_MODEL,
-        model_kwargs={"device": "cpu"},
-        encode_kwargs={"normalize_embeddings": True},
-    )
+_tokenizer = None
+_model = None
+
+
+def _load_embeddings():
+    global _tokenizer, _model
+    if _tokenizer is None:
+        _tokenizer = AutoTokenizer.from_pretrained(EMBEDDING_MODEL)
+        _model = AutoModel.from_pretrained(EMBEDDING_MODEL)
+        _model.eval()
+    return _tokenizer, _model
+
+
+def embed_text(texts: list[str]) -> list[list[float]]:
+    tokenizer, model = _load_embeddings()
+    inputs = tokenizer(texts, padding=True, truncation=True, return_tensors="pt")
+    with torch.no_grad():
+        output = model(**inputs)
+    # BGE models use CLS token pooling (first token)
+    embeddings = output.last_hidden_state[:, 0]
+    embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
+    return embeddings.tolist()
+
+
+class LightweightBGEEmbeddings:
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        return embed_text(texts)
+
+    def embed_query(self, text: str) -> list[float]:
+        return embed_text([text])[0]
 
 
 @lru_cache(maxsize=None)
@@ -125,7 +140,7 @@ def load_vector_store() -> PGVector | None:
     except Exception as e:
         raise ValueError(f"Configuration error: {e}")
 
-    embeddings = _load_embeddings()
+    embeddings = LightweightBGEEmbeddings()
 
     try:
         vector_store = PGVector(
