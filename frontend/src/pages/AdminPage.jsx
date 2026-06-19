@@ -266,7 +266,7 @@ export default function AdminPage() {
           </div>
 
           {uploadStatus === "success" && (
-            <p className="text-xs text-[#c1ff72] font-semibold mt-1">Upload and ingestion successful!</p>
+            <p className="text-xs text-[#c1ff72] font-semibold mt-1">Upload successful! Ingestion is processing in the background (refresh to see chunks update).</p>
           )}
           {uploadStatus === "error" && (
             <p className="text-xs text-red-400 font-semibold mt-1">Upload failed: {uploadError}</p>

@@ -18,6 +18,7 @@ Conversation memory is handled by ConversationalRetrievalChain:
 import os
 import re
 import time
+import asyncio
 from functools import lru_cache
 from google import genai as google_genai
 import google.generativeai as genai
@@ -63,6 +64,9 @@ GROQ_MODEL = "llama-3.1-8b-instant"
 TOP_K_RESULTS = 6   # Number of relevant chunks to retrieve per query
 MAX_SUMMARY_CHUNKS = 40
 
+BATCH_SIZE = 20
+MIN_DELAY = 2.0
+
 # Confidence Thresholds
 CONFIDENCE_HIGH = 0.65
 CONFIDENCE_MEDIUM = 0.55
@@ -99,54 +103,82 @@ class EmbeddingRateLimitError(Exception):
     pass
 
 
-class GeminiEmbeddings:
-    """Gemini-based embeddings implementation for langchain-postgres with batching and backoff."""
-
-    def _embed_with_retry(self, content_to_embed) -> list:
-        import time
-        max_attempts = 7
-        base_delay = 2.0  # seconds
+async def embed_chunks_in_batches(texts: list[str], model: str = "models/gemini-embedding-001") -> list[list[float]]:
+    """
+    Embeds a list of text chunks in batches using the specified Gemini embedding model.
+    Includes proactive pacing delays and exponential backoff retry logic on rate limits.
+    """
+    all_embeddings = []
+    max_attempts = 5
+    
+    for i in range(0, len(texts), BATCH_SIZE):
+        batch = texts[i:i + BATCH_SIZE]
         
+        batch_embeddings = None
         for attempt in range(max_attempts):
             try:
                 response = genai.embed_content(
-                    model="models/gemini-embedding-001",
-                    content=content_to_embed,
+                    model=model,
+                    content=batch,
                     output_dimensionality=768
                 )
-                embedding = response.get('embedding', [])
-                if not embedding and hasattr(response, 'embedding'):
-                    embedding = response.embedding
-                return embedding
-            except ResourceExhausted as e:
-                if attempt < max_attempts - 1:
-                    sleep_time = base_delay * (2 ** attempt)
-                    print(f"[WARNING] Embedding rate limit hit. Retrying in {sleep_time:.1f}s... (Attempt {attempt + 1}/{max_attempts})", flush=True)
-                    time.sleep(sleep_time)
-                else:
-                    raise EmbeddingRateLimitError("We're experiencing high traffic right now, please try again in a moment.") from e
+                batch_embeddings = response.get('embedding', [])
+                if not batch_embeddings and hasattr(response, 'embedding'):
+                    batch_embeddings = response.embedding
+                break  # Successful API call, exit the retry loop
             except Exception as e:
-                # Raise other exceptions immediately
-                raise e
+                err_msg = str(e).lower()
+                is_rate_limit = (
+                    "429" in err_msg or 
+                    "high traffic" in err_msg or 
+                    "quota" in err_msg or 
+                    "resourceexhausted" in err_msg or
+                    isinstance(e, ResourceExhausted)
+                )
+                if is_rate_limit and attempt < max_attempts - 1:
+                    sleep_time = MIN_DELAY * (2 ** attempt)
+                    print(f"[WARNING] Embedding rate limit hit. Retrying in {sleep_time:.1f}s... (Attempt {attempt + 1}/{max_attempts})", flush=True)
+                    await asyncio.sleep(sleep_time)
+                else:
+                    # Raise non-rate-limit errors or final failure immediately
+                    raise e
+                    
+        if batch_embeddings is None:
+            raise EmbeddingRateLimitError("We're experiencing high traffic right now, please try again in a moment.")
+            
+        all_embeddings.extend(batch_embeddings)
+        
+        # Proactively sleep between batches to stay below request limits
+        if i + BATCH_SIZE < len(texts):
+            await asyncio.sleep(MIN_DELAY)
+            
+    return all_embeddings
+
+
+class GeminiEmbeddings:
+    """Gemini-based embeddings implementation for langchain-postgres with batching and backoff."""
+
+    def _run_async(self, coro):
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+            
+        if loop and loop.is_running():
+            import threading
+            from concurrent.futures import ThreadPoolExecutor
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(asyncio.run, coro)
+                return future.result()
+        else:
+            return asyncio.run(coro)
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
-        # Process in batches of 30 to stay well within rate limits
-        batch_size = 30
-        all_embeddings = []
-        
-        for i in range(0, len(texts), batch_size):
-            batch = texts[i:i + batch_size]
-            batch_embeddings = self._embed_with_retry(batch)
-            all_embeddings.extend(batch_embeddings)
-            
-            # Proactively sleep 4.0 seconds between batches to stay below the 15 RPM limit
-            if i + batch_size < len(texts):
-                time.sleep(4.0)
-                
-        return all_embeddings
+        return self._run_async(embed_chunks_in_batches(texts))
 
     def embed_query(self, text: str) -> list[float]:
-        return self._embed_with_retry(text)
+        embeddings = self._run_async(embed_chunks_in_batches([text]))
+        return embeddings[0]
 
 
 @lru_cache(maxsize=None)

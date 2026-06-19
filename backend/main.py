@@ -1,5 +1,5 @@
 # pyrefly: ignore [missing-import]
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, BackgroundTasks
 # pyrefly: ignore [missing-import]
 from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
 from pydantic import BaseModel
@@ -16,6 +16,16 @@ from ingest import run_ingestion
 from generate_summaries import generate_summary_for_file
 
 app = FastAPI()
+
+
+def process_document_in_background(ingest_path: str):
+    """Ingests the saved document in the background to avoid blocking requests."""
+    try:
+        print(f"[BACKGROUND] Starting ingestion for: {ingest_path}", flush=True)
+        run_ingestion(file_paths=[ingest_path], clear_collection=False)
+        print(f"[BACKGROUND] Ingestion completed successfully for: {ingest_path}", flush=True)
+    except Exception as e:
+        print(f"[BACKGROUND_ERROR] Ingestion failed for {ingest_path}: {e}", flush=True)
 app.add_middleware(
     CORSMiddleware,
     allow_origin_regex=r"^https?://(aiesec-bot\.vercel\.app|aiesec-[a-z0-9]+-aliikashifs-projects\.vercel\.app|localhost:(5173|5174))$",
@@ -158,12 +168,10 @@ def get_documents():
 
 
 @app.post("/documents/upload")
-def upload_document(file: UploadFile = File(...)):
+def upload_document(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
     if not file.filename.lower().endswith(".pdf"):
         return JSONResponse(status_code=400, content={"error": "Only PDF files are supported."})
         
-    db_url = get_db_url()
-    
     filename = os.path.basename(file.filename.replace("\\", "/"))
     file_path = DOCUMENTS_DIR / filename
     
@@ -173,11 +181,11 @@ def upload_document(file: UploadFile = File(...)):
         with open(file_path, "wb") as buffer:
             buffer.write(file.file.read())
             
-        # Run ingestion for this file
+        # Schedule the chunking, embedding, and loading to run in the background
         ingest_path = f"documents/{filename}"
-        run_ingestion(file_paths=[ingest_path], clear_collection=False)
+        background_tasks.add_task(process_document_in_background, ingest_path)
         
-        return {"status": "ok", "filename": filename}
+        return {"status": "processing", "filename": filename}
     except Exception as e:
         if file_path.exists():
             try:
