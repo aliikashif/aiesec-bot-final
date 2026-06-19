@@ -1,122 +1,238 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState, useRef, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import ChatMessage from "@/components/ChatMessage"
+import TypingIndicator from "@/components/TypingIndicator"
+import SuggestedQuestions from "@/components/SuggestedQuestions"
 
-function App() {
-  const [count, setCount] = useState(0)
+// ─── Dummy initial messages ───────────────────────────────────────────────────
+const INITIAL_MESSAGES = [
+  {
+    role: "user",
+    content: "What's the reimbursement process?",
+  },
+  {
+    role: "bot",
+    content:
+      "To get reimbursed, submit your receipts along with a filled reimbursement form to the F&L team within 7 days of the expense.",
+    confidence: "High",
+    sources: ["reimbursement_policy.pdf", "finance_handbook.pdf"],
+  },
+]
 
+// ─── Backend API ─────────────────────────────────────────────────────────────
+const API_URL = "http://localhost:8000/chat"
+
+// ─── Header ───────────────────────────────────────────────────────────────────
+function Header() {
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <header
+      className="flex items-center gap-3 px-5 py-3.5 shadow-lg flex-shrink-0 z-10"
+      style={{ background: "#140586" }}
+    >
+      {/* Bot icon */}
+      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(193,255,114,0.15)" }}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c1ff72" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          <circle cx="12" cy="16" r="1" fill="#c1ff72"/>
+        </svg>
+      </div>
 
-      <div className="ticks"></div>
+      <div>
+        <h1 className="text-white font-semibold text-sm leading-tight">AIESEC F&amp;L Assistant</h1>
+        <p className="text-xs" style={{ color: "rgba(193,255,114,0.8)" }}>Finance &amp; Legal RAG Chatbot</p>
+      </div>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      {/* Status pill */}
+      <div className="ml-auto flex items-center gap-1.5 rounded-full px-3 py-1" style={{ background: "rgba(255,255,255,0.08)" }}>
+        <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+        <span className="text-xs text-white/70">Online</span>
+      </div>
+    </header>
   )
 }
 
-export default App
+// ─── Send icon SVG ────────────────────────────────────────────────────────────
+function SendIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="22" y1="2" x2="11" y2="13"/>
+      <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+    </svg>
+  )
+}
+
+// ─── Main App ─────────────────────────────────────────────────────────────────
+export default function App() {
+  const [messages, setMessages] = useState(INITIAL_MESSAGES)
+  const [inputValue, setInputValue] = useState("")
+  const [isTyping, setIsTyping] = useState(false)
+  const messagesEndRef = useRef(null)
+  const inputRef = useRef(null)
+
+  // Auto-scroll to bottom whenever messages change or typing indicator appears
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages, isTyping])
+
+  const sendMessage = async () => {
+    const text = inputValue.trim()
+    if (!text || isTyping) return
+
+    // Snapshot current messages BEFORE adding the new user turn,
+    // so we can build chat_history from completed exchanges only.
+    setMessages(prev => {
+      // We need the snapshot inside the updater — capture it via closure below.
+      return prev
+    })
+
+    // Build chat_history from the CURRENT messages state (completed exchanges).
+    // Pair up consecutive user+bot turns, take the last 6 pairs.
+    const buildHistory = (msgs) => {
+      const pairs = []
+      for (let i = 0; i < msgs.length - 1; i++) {
+        if (msgs[i].role === "user" && msgs[i + 1].role === "bot") {
+          pairs.push([msgs[i].content, msgs[i + 1].content])
+          i++ // skip the bot message we just consumed
+        }
+      }
+      return pairs.slice(-6)
+    }
+
+    // Capture the current messages array synchronously before the state update.
+    // We read it directly from the ref-free closure; setMessages above is a no-op updater.
+    // Instead, use a local variable updated via functional form:
+    let chatHistory = []
+    setMessages(prev => {
+      chatHistory = buildHistory(prev)
+      return [...prev, { role: "user", content: text }]
+    })
+
+    setInputValue("")
+    setIsTyping(true)
+
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: text, chat_history: chatHistory }),
+      })
+
+      if (!res.ok) {
+        throw new Error(`Server error: ${res.status}`)
+      }
+
+      const data = await res.json()
+      // data shape: { answer, confidence, sources, farewell }
+      setMessages(prev => [
+        ...prev,
+        {
+          role: "bot",
+          content: data.answer,
+          confidence: data.confidence ?? null,
+          sources: Array.isArray(data.sources) ? data.sources : [],
+        },
+      ])
+    } catch (err) {
+      console.error("[AIESEC F&L] fetch error:", err)
+      setMessages(prev => [
+        ...prev,
+        {
+          role: "bot",
+          content: "Something went wrong reaching the server — please try again.",
+          confidence: null,
+          sources: [],
+        },
+      ])
+    } finally {
+      setIsTyping(false)
+    }
+  }
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      sendMessage()
+    }
+  }
+
+  const handleSuggestionSelect = (text) => {
+    setInputValue(text)
+    inputRef.current?.focus()
+  }
+
+  const isEmpty = messages.length === 0
+
+  return (
+    <div
+      className="flex flex-col h-screen w-screen overflow-hidden"
+      style={{ background: "#0d0d1a", fontFamily: "'Inter', sans-serif" }}
+    >
+      {/* 1. Header */}
+      <Header />
+
+      {/* 2. Chat area / Empty state */}
+      <div className="flex-1 overflow-y-auto">
+        {isEmpty ? (
+          <SuggestedQuestions onSelect={handleSuggestionSelect} />
+        ) : (
+          <div className="px-4 py-6 max-w-3xl mx-auto w-full">
+            {messages.map((msg, i) => (
+              <ChatMessage key={i} message={msg} />
+            ))}
+
+            {/* 4. Typing indicator */}
+            {isTyping && <TypingIndicator />}
+
+            {/* Scroll anchor */}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
+
+        {/* Show scroll anchor even on empty state so the ref exists */}
+        {isEmpty && <div ref={messagesEndRef} />}
+      </div>
+
+      {/* 5. Input bar */}
+      <div
+        className="flex-shrink-0 border-t px-4 py-3"
+        style={{ background: "#0d0d1a", borderColor: "rgba(255,255,255,0.07)" }}
+      >
+        <div className="flex gap-2 max-w-3xl mx-auto">
+          <Input
+            ref={inputRef}
+            value={inputValue}
+            onChange={e => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask about finance or legal policies…"
+            disabled={isTyping}
+            className="flex-1 text-sm text-white placeholder:text-white/30 rounded-xl border h-11 px-4 focus-visible:ring-1 focus-visible:ring-[#c1ff72] focus-visible:border-[#c1ff72]"
+            style={{
+              background: "#1a1a3e",
+              borderColor: "rgba(255,255,255,0.12)",
+            }}
+          />
+          <Button
+            onClick={sendMessage}
+            disabled={!inputValue.trim() || isTyping}
+            className="h-11 px-4 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all duration-150"
+            style={{
+              background: inputValue.trim() && !isTyping ? "#c1ff72" : "rgba(193,255,114,0.15)",
+              color: inputValue.trim() && !isTyping ? "#0d0d1a" : "rgba(193,255,114,0.4)",
+              border: "none",
+            }}
+          >
+            <SendIcon />
+            Send
+          </Button>
+        </div>
+
+        {/* Hint */}
+        <p className="text-center text-[11px] mt-2" style={{ color: "rgba(255,255,255,0.2)" }}>
+          Press Enter to send · AI responses are for guidance only
+        </p>
+      </div>
+    </div>
+  )
+}

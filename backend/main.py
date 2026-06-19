@@ -6,8 +6,15 @@ from pydantic import BaseModel
 from typing import List
 
 from rag import get_answer, load_vector_store
-
+from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5175"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class ChatRequest(BaseModel):
     question: str

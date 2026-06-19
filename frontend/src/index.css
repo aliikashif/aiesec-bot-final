@@ -123,8 +123,24 @@
     }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
     }
   html {
     @apply font-sans;
     }
+}
+
+/* ── Typing indicator dots ─────────────────────────────────────── */
+@keyframes bounce-dot {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40%           { transform: translateY(-6px); opacity: 1; }
+}
+
+.typing-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #c1ff72;
+  animation: bounce-dot 1.2s infinite ease-in-out both;
 }
