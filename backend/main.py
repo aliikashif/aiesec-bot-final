@@ -18,7 +18,11 @@ from generate_summaries import generate_summary_for_file
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174", "https://aiesec-bot-final.vercel.app"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "https://aiesec-bot.vercel.app",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

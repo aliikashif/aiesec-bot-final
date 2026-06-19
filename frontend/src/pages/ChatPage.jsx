@@ -21,37 +21,37 @@ const INITIAL_MESSAGES = [
 ]
 
 // ─── Backend API ─────────────────────────────────────────────────────────────
-const API_URL = "http://localhost:8000/chat"
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
-// ─── Header ───────────────────────────────────────────────────────────────────
-function Header() {
-  return (
-    <header
-      className="flex items-center gap-3 px-5 py-3.5 shadow-lg flex-shrink-0 z-10"
-      style={{ background: "#140586" }}
-    >
-      {/* Bot icon */}
-      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(193,255,114,0.15)" }}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c1ff72" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-          <circle cx="12" cy="16" r="1" fill="#c1ff72" />
-        </svg>
-      </div>
+  // ─── Header ───────────────────────────────────────────────────────────────────
+  function Header() {
+    return (
+      <header
+        className="flex items-center gap-3 px-5 py-3.5 shadow-lg flex-shrink-0 z-10"
+        style={{ background: "#140586" }}
+      >
+        {/* Bot icon */}
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(193,255,114,0.15)" }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c1ff72" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            <circle cx="12" cy="16" r="1" fill="#c1ff72" />
+          </svg>
+        </div>
 
-      <div>
-        <h1 className="text-white font-semibold text-sm leading-tight">AIESEC F&amp;L Assistant</h1>
-        <p className="text-xs" style={{ color: "rgba(193,255,114,0.8)" }}>Finance &amp; Legal RAG Chatbot</p>
-      </div>
+        <div>
+          <h1 className="text-white font-semibold text-sm leading-tight">AIESEC F&amp;L Assistant</h1>
+          <p className="text-xs" style={{ color: "rgba(193,255,114,0.8)" }}>Finance &amp; Legal RAG Chatbot</p>
+        </div>
 
-      {/* Status pill */}
-      <div className="ml-auto flex items-center gap-1.5 rounded-full px-3 py-1" style={{ background: "rgba(255,255,255,0.08)" }}>
-        <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-        <span className="text-xs text-white/70">Online</span>
-      </div>
-    </header>
-  )
-}
+        {/* Status pill */}
+        <div className="ml-auto flex items-center gap-1.5 rounded-full px-3 py-1" style={{ background: "rgba(255,255,255,0.08)" }}>
+          <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+          <span className="text-xs text-white/70">Online</span>
+        </div>
+      </header>
+    )
+  }
 
 // ─── Send icon SVG ────────────────────────────────────────────────────────────
 function SendIcon() {
@@ -76,8 +76,8 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages, isTyping])
 
-  const sendMessage = async () => {
-    const text = inputValue.trim()
+  const sendMessage = async (overrideText = "") => {
+    const text = overrideText ? overrideText.trim() : inputValue.trim()
     if (!text || isTyping) return
 
     // Snapshot current messages BEFORE adding the new user turn,
@@ -114,7 +114,7 @@ export default function ChatPage() {
 
     let botMessageAdded = false
     try {
-      const res = await fetch("http://localhost:8000/chat/stream", {
+      const res = await fetch(`${API_BASE_URL}/chat/stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: text, chat_history: chatHistory }),
@@ -169,6 +169,7 @@ export default function ChatPage() {
                 return next
               })
             } else if (eventData.type === "done") {
+              let finalAnswer = ""
               setMessages(prev => {
                 const next = [...prev]
                 if (next.length > 0) {
@@ -177,9 +178,15 @@ export default function ChatPage() {
                   lastMsg.sources = Array.isArray(eventData.sources) ? eventData.sources : []
                   lastMsg.farewell = eventData.farewell ?? null
                   next[next.length - 1] = lastMsg
+                  finalAnswer = lastMsg.content
                 }
                 return next
               })
+
+              if (eventData.confidence !== null) {
+                fetchFollowups(text, finalAnswer, eventData.source_documents || [])
+              }
+
               if (eventData.farewell) {
                 setTimeout(() => {
                   setMessages([])
@@ -246,6 +253,41 @@ export default function ChatPage() {
     inputRef.current?.focus()
   }
 
+  const fetchFollowups = (question, answer, sourceDocs) => {
+    fetch(`${API_BASE_URL}/followups`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        question,
+        answer,
+        source_documents: sourceDocs
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.followups && data.followups.length > 0) {
+          setMessages(prev => {
+            const next = [...prev]
+            for (let i = next.length - 1; i >= 0; i--) {
+              if (next[i].role === "bot") {
+                next[i] = { ...next[i], followups: data.followups }
+                break
+              }
+            }
+            return next
+          })
+        }
+      })
+      .catch(err => {
+        console.error("Error fetching follow-up suggestions:", err)
+      })
+  }
+
+  const handleFollowUpClick = (text) => {
+    setInputValue(text)
+    sendMessage(text)
+  }
+
   const isEmpty = messages.length === 0
 
   return (
@@ -263,7 +305,12 @@ export default function ChatPage() {
         ) : (
           <div className="px-4 py-6 max-w-3xl mx-auto w-full">
             {messages.map((msg, i) => (
-              <ChatMessage key={i} message={msg} />
+              <ChatMessage
+                key={i}
+                message={msg}
+                isLast={i === messages.length - 1}
+                onFollowUpClick={handleFollowUpClick}
+              />
             ))}
 
             {/* 4. Typing indicator */}

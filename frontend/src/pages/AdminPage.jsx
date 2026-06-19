@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react"
+import { ShaderAnimation } from "@/components/shader-animation"
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 export default function AdminPage() {
+  const [isVerifying, setIsVerifying] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [passwordInput, setPasswordInput] = useState("")
   const [passwordError, setPasswordError] = useState("")
@@ -17,18 +21,25 @@ export default function AdminPage() {
   const [actionLoading, setActionLoading] = useState({})
 
   const handleUnlock = () => {
-    if (passwordInput === "aiesec2024") {
-      setIsAuthenticated(true)
-      setPasswordError("")
-    } else {
-      setPasswordError("Incorrect password")
-    }
+    setIsVerifying(true)
+    setPasswordError("")
+    
+    // Simulate verification delay
+    setTimeout(() => {
+      if (passwordInput === "aiesec2024") {
+        setIsAuthenticated(true)
+        setIsVerifying(false)
+      } else {
+        setPasswordError("Incorrect password")
+        setIsVerifying(false)
+      }
+    }, 1500)
   }
 
   const fetchDocuments = () => {
     setLoadingDocs(true)
     setDocsError(null)
-    fetch("http://localhost:8000/documents")
+    fetch(`${API_BASE_URL}/documents`)
       .then(res => {
         if (!res.ok) {
           throw new Error("Failed to load documents.")
@@ -65,7 +76,7 @@ export default function AdminPage() {
     const formData = new FormData()
     formData.append("file", selectedFile)
 
-    fetch("http://localhost:8000/documents/upload", {
+    fetch(`${API_BASE_URL}/documents/upload`, {
       method: "POST",
       body: formData,
     })
@@ -93,7 +104,7 @@ export default function AdminPage() {
 
   const handleDelete = (filename) => {
     setActionLoading(prev => ({ ...prev, [filename]: "deleting" }))
-    fetch(`http://localhost:8000/documents/${encodeURIComponent(filename)}`, {
+    fetch(`${API_BASE_URL}/documents/${encodeURIComponent(filename)}`, {
       method: "DELETE",
     })
       .then(res => {
@@ -123,7 +134,7 @@ export default function AdminPage() {
 
   const handleSummarize = (filename) => {
     setActionLoading(prev => ({ ...prev, [filename]: "summarizing" }))
-    fetch(`http://localhost:8000/documents/summarize/${encodeURIComponent(filename)}`, {
+    fetch(`${API_BASE_URL}/documents/summarize/${encodeURIComponent(filename)}`, {
       method: "POST",
     })
       .then(res => {
@@ -155,46 +166,52 @@ export default function AdminPage() {
   if (!isAuthenticated) {
     return (
       <div
-        className="flex items-center justify-center h-full w-full p-6 text-white font-sans"
+        className="relative flex items-center justify-center h-full w-full p-6 text-white font-sans overflow-hidden"
         style={{ background: "#0d0d1a" }}
       >
-        <div
-          className="w-full max-w-md p-8 rounded-2xl border border-white/5 flex flex-col gap-6 shadow-2xl"
-          style={{ background: "#1a1a3e" }}
-        >
-          <div className="text-center">
-            <span className="text-4xl block mb-3">🔒</span>
-            <h2 className="text-2xl font-bold tracking-tight">Admin Gate</h2>
-            <p className="text-xs text-white/50 mt-1">Please authenticate to manage policy files</p>
+        {isVerifying ? (
+          <div className="absolute inset-0 z-50 bg-black flex items-center justify-center overflow-hidden">
+            <ShaderAnimation />
           </div>
+        ) : (
+          <div
+            className="w-full max-w-md p-8 rounded-2xl border border-white/5 flex flex-col gap-6 shadow-2xl"
+            style={{ background: "#1a1a3e" }}
+          >
+            <div className="text-center">
+              <span className="text-4xl block mb-3">🔒</span>
+              <h2 className="text-2xl font-bold tracking-tight">Admin Gate</h2>
+              <p className="text-xs text-white/50 mt-1">Please authenticate to manage policy files</p>
+            </div>
 
-          <div className="flex flex-col gap-3">
-            <input
-              type="password"
-              value={passwordInput}
-              onChange={e => setPasswordInput(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === "Enter") handleUnlock()
-              }}
-              placeholder="Enter admin password"
-              className="w-full px-4 h-12 rounded-xl text-sm border focus:outline-none focus:ring-1 focus:ring-[#c1ff72] focus:border-[#c1ff72] transition-all bg-[#0d0d1a]/50 text-white placeholder:text-white/30"
-              style={{ borderColor: "rgba(255,255,255,0.12)" }}
-            />
-            <button
-              onClick={handleUnlock}
-              className="w-full h-12 rounded-xl text-sm font-semibold tracking-wide cursor-pointer transition-all duration-150 active:scale-[0.98]"
-              style={{
-                background: "#c1ff72",
-                color: "#0d0d1a",
-              }}
-            >
-              Unlock
-            </button>
-            {passwordError && (
-              <p className="text-xs font-semibold text-red-400 mt-1 text-center">{passwordError}</p>
-            )}
+            <div className="flex flex-col gap-3">
+              <input
+                type="password"
+                value={passwordInput}
+                onChange={e => setPasswordInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === "Enter") handleUnlock()
+                }}
+                placeholder="Enter admin password"
+                className="w-full px-4 h-12 rounded-xl text-sm border focus:outline-none focus:ring-1 focus:ring-[#c1ff72] focus:border-[#c1ff72] transition-all bg-[#0d0d1a]/50 text-white placeholder:text-white/30"
+                style={{ borderColor: "rgba(255,255,255,0.12)" }}
+              />
+              <button
+                onClick={handleUnlock}
+                className="w-full h-12 rounded-xl text-sm font-semibold tracking-wide cursor-pointer transition-all duration-150 active:scale-[0.98]"
+                style={{
+                  background: "#c1ff72",
+                  color: "#0d0d1a",
+                }}
+              >
+                Unlock
+              </button>
+              {passwordError && (
+                <p className="text-xs font-semibold text-red-400 mt-1 text-center">{passwordError}</p>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     )
   }

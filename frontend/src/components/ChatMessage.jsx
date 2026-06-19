@@ -83,7 +83,7 @@ function FeedbackButtons() {
   )
 }
 
-export default function ChatMessage({ message }) {
+export default function ChatMessage({ message, isLast, onFollowUpClick }) {
   const isUser = message.role === "user"
 
   if (isUser) {
@@ -123,6 +123,21 @@ export default function ChatMessage({ message }) {
         {/* Sources */}
         {message.sources && message.sources.length > 0 && (
           <SourcesBox sources={message.sources} />
+        )}
+
+        {/* Follow-up suggestions */}
+        {isLast && message.followups && message.followups.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-3">
+            {message.followups.map((q, i) => (
+              <button
+                key={i}
+                onClick={() => onFollowUpClick && onFollowUpClick(q)}
+                className="text-xs font-semibold px-3 py-1.5 rounded-full border transition-all duration-150 cursor-pointer bg-[#140586]/10 text-[#c1ff72] border-[#c1ff72] hover:bg-[#c1ff72] hover:text-[#0d0d1a]"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
         )}
 
         {/* Feedback */}
