@@ -16,7 +16,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from rag import LightweightBGEEmbeddings
+from rag import GeminiEmbeddings
 from langchain_postgres import PGVector
 
 # Load environment variables from .env
@@ -30,9 +30,6 @@ DOCUMENTS_DIR = "documents"          # Folder containing your PDF files
 COLLECTION_NAME = "aiesec_documents" # pgvector collection name
 CHUNK_SIZE = 1000                   # Characters per chunk
 CHUNK_OVERLAP = 200                 # Overlap between consecutive chunks
-# BRANCH: feature/bge-embedding — change back to all-MiniLM-L6-v2 
-# on main, or update both files together if merging
-EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
 
 
 def get_db_url() -> str:
@@ -109,8 +106,8 @@ def create_vector_store(chunks: list) -> PGVector:
     Generate HuggingFace embeddings for every chunk and store them
     in Supabase pgvector.
     """
-    print(f"\n[EMBED] Loading embedding model '{EMBEDDING_MODEL}' ...")
-    embeddings = LightweightBGEEmbeddings()
+    print("\n[EMBED] Loading Gemini embedding model ...")
+    embeddings = GeminiEmbeddings()
 
     db_url = get_db_url()
 
@@ -158,7 +155,7 @@ def run_ingestion(file_paths: list = None, clear_collection: bool = False, progr
     except Exception as e:
         raise ValueError(f"Configuration error: {e}")
 
-    embeddings = LightweightBGEEmbeddings()
+    embeddings = GeminiEmbeddings()
 
     try:
         vector_store = PGVector(

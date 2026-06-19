@@ -19,14 +19,14 @@ import os
 import re
 import time
 from functools import lru_cache
-from google import genai
+from google import genai as google_genai
+import google.generativeai as genai
+from google.api_core.exceptions import ResourceExhausted
 from pathlib import Path
 
 from dotenv import load_dotenv
 from langchain_postgres import PGVector
 from langchain_groq import ChatGroq
-from transformers import AutoTokenizer, AutoModel
-import torch
 from langchain.chains import ConversationalRetrievalChain
 from langchain.prompts import (
     SystemMessagePromptTemplate,
@@ -53,13 +53,12 @@ if not groq_api_key:
 if not google_api_key:
     raise EnvironmentError("GOOGLE_API_KEY not found. Please add it to your .env file.")
 
-client = genai.Client(api_key=google_api_key)
+# Configure the legacy and new Gemini SDKs
+genai.configure(api_key=google_api_key)
+client = google_genai.Client(api_key=google_api_key)
 
 # ─────────────────────────────────────────────
 COLLECTION_NAME = "aiesec_documents"
-# BRANCH: feature/bge-embedding — change back to all-MiniLM-L6-v2 
-# on main, or update both files together if merging
-EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
 GROQ_MODEL = "llama-3.1-8b-instant"
 TOP_K_RESULTS = 6   # Number of relevant chunks to retrieve per query
 MAX_SUMMARY_CHUNKS = 40
@@ -95,36 +94,59 @@ def get_db_url() -> str:
     return db_url
 
 
-_tokenizer = None
-_model = None
+class EmbeddingRateLimitError(Exception):
+    """Custom exception raised when the Gemini embedding API rate limit/quota is hit."""
+    pass
 
 
-def _load_embeddings():
-    global _tokenizer, _model
-    if _tokenizer is None:
-        _tokenizer = AutoTokenizer.from_pretrained(EMBEDDING_MODEL)
-        _model = AutoModel.from_pretrained(EMBEDDING_MODEL)
-        _model.eval()
-    return _tokenizer, _model
+class GeminiEmbeddings:
+    """Gemini-based embeddings implementation for langchain-postgres with batching and backoff."""
 
+    def _embed_with_retry(self, content_to_embed) -> list:
+        import time
+        max_attempts = 7
+        base_delay = 2.0  # seconds
+        
+        for attempt in range(max_attempts):
+            try:
+                response = genai.embed_content(
+                    model="models/gemini-embedding-001",
+                    content=content_to_embed,
+                    output_dimensionality=768
+                )
+                embedding = response.get('embedding', [])
+                if not embedding and hasattr(response, 'embedding'):
+                    embedding = response.embedding
+                return embedding
+            except ResourceExhausted as e:
+                if attempt < max_attempts - 1:
+                    sleep_time = base_delay * (2 ** attempt)
+                    print(f"[WARNING] Embedding rate limit hit. Retrying in {sleep_time:.1f}s... (Attempt {attempt + 1}/{max_attempts})", flush=True)
+                    time.sleep(sleep_time)
+                else:
+                    raise EmbeddingRateLimitError("We're experiencing high traffic right now, please try again in a moment.") from e
+            except Exception as e:
+                # Raise other exceptions immediately
+                raise e
 
-def embed_text(texts: list[str]) -> list[list[float]]:
-    tokenizer, model = _load_embeddings()
-    inputs = tokenizer(texts, padding=True, truncation=True, return_tensors="pt")
-    with torch.no_grad():
-        output = model(**inputs)
-    # BGE models use CLS token pooling (first token)
-    embeddings = output.last_hidden_state[:, 0]
-    embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
-    return embeddings.tolist()
-
-
-class LightweightBGEEmbeddings:
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
-        return embed_text(texts)
+        # Process in batches of 30 to stay well within rate limits
+        batch_size = 30
+        all_embeddings = []
+        
+        for i in range(0, len(texts), batch_size):
+            batch = texts[i:i + batch_size]
+            batch_embeddings = self._embed_with_retry(batch)
+            all_embeddings.extend(batch_embeddings)
+            
+            # Proactively sleep 4.0 seconds between batches to stay below the 15 RPM limit
+            if i + batch_size < len(texts):
+                time.sleep(4.0)
+                
+        return all_embeddings
 
     def embed_query(self, text: str) -> list[float]:
-        return embed_text([text])[0]
+        return self._embed_with_retry(text)
 
 
 @lru_cache(maxsize=None)
@@ -140,7 +162,7 @@ def load_vector_store() -> PGVector | None:
     except Exception as e:
         raise ValueError(f"Configuration error: {e}")
 
-    embeddings = LightweightBGEEmbeddings()
+    embeddings = GeminiEmbeddings()
 
     try:
         vector_store = PGVector(

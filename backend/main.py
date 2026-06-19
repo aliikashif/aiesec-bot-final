@@ -10,7 +10,7 @@ import os
 import psycopg2
 from pathlib import Path
 
-from rag import get_answer, load_vector_store, get_db_url
+from rag import get_answer, load_vector_store, get_db_url, EmbeddingRateLimitError
 from fastapi.middleware.cors import CORSMiddleware
 from ingest import run_ingestion
 from generate_summaries import generate_summary_for_file
@@ -58,6 +58,11 @@ def chat(request: ChatRequest):
             "sources": result.get("sources"),
             "farewell": result.get("farewell"),
         }
+    except EmbeddingRateLimitError as e:
+        return JSONResponse(
+            status_code=429,
+            content={"error": str(e)}
+        )
     except Exception as e:
         return JSONResponse(
             status_code=500,
@@ -68,14 +73,25 @@ def chat(request: ChatRequest):
 @app.post("/chat/stream")
 def chat_stream(request: ChatRequest):
     global vector_store
-    if vector_store is None:
-        vector_store = load_vector_store()
+    try:
+        if vector_store is None:
+            vector_store = load_vector_store()
+        
+        chat_history_as_tuples = [tuple(item) for item in request.chat_history]
+        result = get_answer(request.question, vector_store, chat_history_as_tuples)
+    except EmbeddingRateLimitError as e:
+        return JSONResponse(
+            status_code=429,
+            content={"error": str(e)}
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e)}
+        )
 
     async def event_stream():
         try:
-            chat_history_as_tuples = [tuple(item) for item in request.chat_history]
-            result = get_answer(request.question, vector_store, chat_history_as_tuples)
-            
             answer = result.get("answer") or ""
             words = answer.split(" ")
             
