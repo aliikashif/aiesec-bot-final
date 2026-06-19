@@ -193,34 +193,14 @@ def find_matching_document(query: str, available_filenames: list) -> str | None:
                 return filename
     return None
 
-
-def get_answer(question: str, vector_store: PGVector, chat_history: list | None = None) -> dict:
+def _check_shortcircuit(question: str) -> dict | None:
     """
-    Full RAG query with conversation memory.
-
-      1. Short-circuit for greetings / farewells / identity (no LLM call)
-      2. Build a ConversationalRetrievalChain that:
-         a. Condenses the question + chat history into a standalone query
-         b. Retrieves TOP_K_RESULTS relevant chunks from Supabase pgvector
-         c. Answers using the system prompt + retrieved context
-      3. Return {"answer": str, "sources": list[str], "farewell": bool}
-
-    Args:
-        question:     The user's natural-language question.
-        vector_store: A loaded PGVector instance (from load_vector_store()).
-        chat_history: List of (human_msg, ai_msg) tuples from previous turns.
-                      Pass the last 6 exchanges to stay within token limits.
-                      Defaults to [] if not provided.
-
-    Returns:
-        A dict with keys "answer" (str), "sources" (list[str]), "farewell" (bool).
+    Checks the question against the four non-RAG short-circuit cases:
+    summarization intent, greeting, farewell, and name/identity.
+    Returns the matching answer dict if one matches, otherwise None
+    (meaning the question should go through the full RAG pipeline).
     """
-    import re
-
-    if chat_history is None:
-        chat_history = []
-
-    # ── Step 0: Summarization intent check ──────────────────────────────────
+    # ── Summarization intent ─────────────────────────────────────────────
     if detect_summarize_intent(question):
         db_url = get_db_url()
         import psycopg2
@@ -238,7 +218,7 @@ def get_answer(question: str, vector_store: PGVector, chat_history: list | None 
             conn.close()
         except Exception as e:
             print(f"[ERROR] Failed to fetch available filenames: {e}")
-            
+
         matched_doc = find_matching_document(question, available_filenames)
         if matched_doc:
             summary = get_summary(matched_doc)
@@ -267,7 +247,7 @@ def get_answer(question: str, vector_store: PGVector, chat_history: list | None 
                 "farewell": False
             }
 
-    # ── Step 0a: Greeting short-circuit ──────────────────────────────────────
+    # ── Greeting ──────────────────────────────────────────────────────────
     _GREETING_PATTERN = re.compile(
         r"^\s*(hi+|hello+|hey+|greetings?|howdy|salaam|good\s*(morning|afternoon|evening)|"
         r"what'?s\s*up|sup|yo)\s*[!\.,]?\s*$",
@@ -290,7 +270,7 @@ def get_answer(question: str, vector_store: PGVector, chat_history: list | None 
             "confidence": None,
         }
 
-    # ── Step 0b: Farewell short-circuit ──────────────────────────────────────
+    # ── Farewell ──────────────────────────────────────────────────────────
     _FAREWELL_PATTERN = re.compile(
         r"^\s*(bye+|goodbye+|good\s*bye|see\s*you(\s*later)?|take\s*care|"
         r"thank\s*you\s*(so\s*much\s*)?(bye|goodbye)?|thanks?\s*(a\s*lot\s*)?(bye|goodbye)?|"
@@ -306,7 +286,7 @@ def get_answer(question: str, vector_store: PGVector, chat_history: list | None 
             "confidence": None,
         }
 
-    # ── Step 0c: Name / identity short-circuit ────────────────────────────────
+    # ── Name / identity ───────────────────────────────────────────────────
     _NAME_PATTERN = re.compile(
         r"^\s*(what'?s?\s*(is\s*)?your\s*name|who\s+are\s+you|what\s+are\s+you(\s+called)?|"
         r"what\s+do\s+(i|we|people)\s+call\s+you|introduce\s+yourself|"
@@ -325,6 +305,39 @@ def get_answer(question: str, vector_store: PGVector, chat_history: list | None 
             "farewell": False,
             "confidence": None,
         }
+
+    return None
+
+
+def get_answer(question: str, vector_store: PGVector, chat_history: list | None = None) -> dict:
+    """
+    Full RAG query with conversation memory.
+
+      1. Short-circuit for greetings / farewells / identity (no LLM call)
+      2. Build a ConversationalRetrievalChain that:
+         a. Condenses the question + chat history into a standalone query
+         b. Retrieves TOP_K_RESULTS relevant chunks from Supabase pgvector
+         c. Answers using the system prompt + retrieved context
+      3. Return {"answer": str, "sources": list[str], "farewell": bool}
+
+    Args:
+        question:     The user's natural-language question.
+        vector_store: A loaded PGVector instance (from load_vector_store()).
+        chat_history: List of (human_msg, ai_msg) tuples from previous turns.
+                      Pass the last 6 exchanges to stay within token limits.
+                      Defaults to [] if not provided.
+
+    Returns:
+        A dict with keys "answer" (str), "sources" (list[str]), "farewell" (bool).
+    """
+    import re
+
+    if chat_history is None:
+        chat_history = []
+
+    shortcircuit_result = _check_shortcircuit(question)
+    if shortcircuit_result is not None:
+        return shortcircuit_result
 
     # ── Step 1: Set up LLM ───────────────────────────────────────────────────
     groq_api_key = os.getenv("GROQ_API_KEY")
@@ -420,6 +433,121 @@ def get_answer(question: str, vector_store: PGVector, chat_history: list | None 
         "confidence": confidence,
     }
 
+
+def get_answer_stream(question: str, vector_store: PGVector, chat_history: list | None = None):
+    """
+    Streaming version of get_answer(), for the /chat/stream endpoint.
+
+    Yields dicts, in order:
+      - {"type": "token", "content": str}   — one piece of the answer at a time
+      - {"type": "done", "confidence": ..., "sources": [...], "farewell": bool}
+        — sent exactly once, after the full answer has streamed
+
+    For short-circuit cases (greeting/farewell/name/summary) there's nothing to
+    stream token-by-token, so the whole answer is sent as one "token" event,
+    immediately followed by "done".
+    """
+    if chat_history is None:
+        chat_history = []
+
+    # ── Short-circuit cases: no real streaming needed ────────────────────────
+    shortcircuit_result = _check_shortcircuit(question)
+    if shortcircuit_result is not None:
+        yield {"type": "token", "content": shortcircuit_result["answer"]}
+        yield {
+            "type": "done",
+            "confidence": shortcircuit_result["confidence"],
+            "sources": shortcircuit_result["sources"],
+            "farewell": shortcircuit_result["farewell"],
+        }
+        return
+
+    # ── Step 1: Set up LLM ───────────────────────────────────────────────────
+    groq_api_key = os.getenv("GROQ_API_KEY")
+    if not groq_api_key:
+        raise EnvironmentError(
+            "GROQ_API_KEY not found. Please add it to your .env file."
+        )
+
+    llm = ChatGroq(
+        model=GROQ_MODEL,
+        api_key=groq_api_key,
+        temperature=0.1,
+        max_tokens=1024,
+    )
+
+    # ── Step 2: Build QA prompt (system persona + context) ───────────────────
+    _system_template = (
+        SYSTEM_PROMPT + "\n\nContext: {context}"
+    )
+    qa_prompt = ChatPromptTemplate.from_messages([
+        SystemMessagePromptTemplate.from_template(_system_template),
+        HumanMessagePromptTemplate.from_template("{question}"),
+    ])
+
+    # ── Step 3: Condense question if history exists ──────────────────────────
+    if chat_history:
+        condense_prompt = PromptTemplate.from_template(
+            "Given the conversation history and a follow-up question, "
+            "rephrase the follow-up as a standalone question. "
+            "If the follow-up is already a clear standalone question, "
+            "return it exactly as is without changing any words.\n\n"
+            "Chat History: {chat_history}\n"
+            "Follow-up: {question}\n"
+            "Standalone question:"
+        )
+        chat_history_str = ""
+        for human, ai in chat_history:
+            chat_history_str += f"Human: {human}\nAI: {ai}\n"
+
+        condense_chain = condense_prompt | llm
+        standalone_query = condense_chain.invoke({
+            "chat_history": chat_history_str,
+            "question": question
+        }).content.strip()
+    else:
+        standalone_query = question
+
+    # ── Step 4: Retrieve chunks and similarity scores ────────────────────────
+    docs_with_scores = vector_store.similarity_search_with_relevance_scores(
+        query=standalone_query,
+        k=6
+    )
+
+    source_docs = [doc for doc, score in docs_with_scores]
+    scores = [score for doc, score in docs_with_scores]
+
+    if scores:
+        avg_score = sum(scores) / len(scores)
+        if avg_score >= CONFIDENCE_HIGH:
+            confidence = "High"
+        elif avg_score >= CONFIDENCE_MEDIUM:
+            confidence = "Medium"
+        else:
+            confidence = "Low"
+    else:
+        confidence = "Low"
+
+    # ── Step 5: Generate answer — STREAMED instead of invoked all at once ────
+    context = "\n\n".join(doc.page_content for doc in source_docs)
+    qa_chain = qa_prompt | llm
+
+    for chunk in qa_chain.stream({"context": context, "question": standalone_query}):
+        if chunk.content:
+            yield {"type": "token", "content": chunk.content}
+
+    # ── Step 6: Extract sources, then signal completion ───────────────────────
+    sources = sorted({
+        Path(doc.metadata.get("source", "Unknown source")).name
+        for doc in source_docs
+    })
+
+    yield {
+        "type": "done",
+        "confidence": confidence,
+        "sources": sources,
+        "farewell": False,
+    }
 
 def create_summaries_table_if_not_exists() -> None:
     """Create the document_summaries table in Supabase if it does not already exist."""

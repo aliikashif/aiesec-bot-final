@@ -1,16 +1,18 @@
 # pyrefly: ignore [missing-import]
 from fastapi import FastAPI
 # pyrefly: ignore [missing-import]
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 from typing import List
+import json
+import asyncio
 
 from rag import get_answer, load_vector_store
 from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5175"],
+    allow_origins=["http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -57,3 +59,27 @@ def chat(request: ChatRequest):
             content={"error": str(e)}
         )
 
+
+@app.post("/chat/stream")
+def chat_stream(request: ChatRequest):
+    global vector_store
+    if vector_store is None:
+        vector_store = load_vector_store()
+
+    async def event_stream():
+        try:
+            chat_history_as_tuples = [tuple(item) for item in request.chat_history]
+            result = get_answer(request.question, vector_store, chat_history_as_tuples)
+            
+            answer = result.get("answer") or ""
+            words = answer.split(" ")
+            
+            for word in words:
+                yield f'data: {json.dumps({"type": "token", "value": word + " "})}\n\n'
+                await asyncio.sleep(0.03)
+                
+            yield f'data: {json.dumps({"type": "done", "confidence": result.get("confidence"), "sources": result.get("sources"), "farewell": result.get("farewell")})}\n\n'
+        except Exception as e:
+            yield f'data: {json.dumps({"type": "error", "message": str(e)})}\n\n'
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")

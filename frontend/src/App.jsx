@@ -33,9 +33,9 @@ function Header() {
       {/* Bot icon */}
       <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(193,255,114,0.15)" }}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c1ff72" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-          <circle cx="12" cy="16" r="1" fill="#c1ff72"/>
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          <circle cx="12" cy="16" r="1" fill="#c1ff72" />
         </svg>
       </div>
 
@@ -57,15 +57,15 @@ function Header() {
 function SendIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="22" y1="2" x2="11" y2="13"/>
-      <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+      <line x1="22" y1="2" x2="11" y2="13" />
+      <polygon points="22 2 15 22 11 13 2 9 22 2" />
     </svg>
   )
 }
 
 // ─── Main App ─────────────────────────────────────────────────────────────────
 export default function App() {
-  const [messages, setMessages] = useState(INITIAL_MESSAGES)
+  const [messages, setMessages] = useState([])
   const [inputValue, setInputValue] = useState("")
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef(null)
@@ -112,8 +112,9 @@ export default function App() {
     setInputValue("")
     setIsTyping(true)
 
+    let botMessageAdded = false
     try {
-      const res = await fetch(API_URL, {
+      const res = await fetch("http://localhost:8000/chat/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: text, chat_history: chatHistory }),
@@ -123,28 +124,111 @@ export default function App() {
         throw new Error(`Server error: ${res.status}`)
       }
 
-      const data = await res.json()
-      // data shape: { answer, confidence, sources, farewell }
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+
       setMessages(prev => [
         ...prev,
         {
           role: "bot",
-          content: data.answer,
-          confidence: data.confidence ?? null,
-          sources: Array.isArray(data.sources) ? data.sources : [],
-        },
-      ])
-    } catch (err) {
-      console.error("[AIESEC F&L] fetch error:", err)
-      setMessages(prev => [
-        ...prev,
-        {
-          role: "bot",
-          content: "Something went wrong reaching the server — please try again.",
+          content: "",
           confidence: null,
           sources: [],
         },
       ])
+      botMessageAdded = true
+
+      let isFirstToken = true
+      let shouldBreak = false
+      let buffer = ""
+
+      while (true) {
+        const { value, done } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split("\n\n")
+        buffer = lines.pop() || ""
+        for (const line of lines) {
+          const trimmed = line.trim()
+          if (!trimmed) continue
+          const cleanChunk = trimmed.startsWith("data: ") ? trimmed.slice(6) : trimmed
+          try {
+            const eventData = JSON.parse(cleanChunk)
+            if (eventData.type === "token") {
+              if (isFirstToken) {
+                setIsTyping(false)
+                isFirstToken = false
+              }
+              setMessages(prev => {
+                const next = [...prev]
+                if (next.length > 0) {
+                  const lastMsg = { ...next[next.length - 1] }
+                  lastMsg.content += eventData.value
+                  next[next.length - 1] = lastMsg
+                }
+                return next
+              })
+            } else if (eventData.type === "done") {
+              setMessages(prev => {
+                const next = [...prev]
+                if (next.length > 0) {
+                  const lastMsg = { ...next[next.length - 1] }
+                  lastMsg.confidence = eventData.confidence ?? null
+                  lastMsg.sources = Array.isArray(eventData.sources) ? eventData.sources : []
+                  lastMsg.farewell = eventData.farewell ?? null
+                  next[next.length - 1] = lastMsg
+                }
+                return next
+              })
+              if (eventData.farewell) {
+                setTimeout(() => {
+                  setMessages([])
+                }, 3000)
+              }
+              shouldBreak = true
+              break
+            } else if (eventData.type === "error") {
+              setMessages(prev => {
+                const next = [...prev]
+                if (next.length > 0) {
+                  const lastMsg = { ...next[next.length - 1] }
+                  lastMsg.content = "Something went wrong."
+                  next[next.length - 1] = lastMsg
+                }
+                return next
+              })
+              shouldBreak = true
+              break
+            }
+          } catch (e) {
+            console.error("Error parsing JSON:", e)
+          }
+        }
+        if (shouldBreak) break
+      }
+    } catch (err) {
+      console.error("[AIESEC F&L] fetch error:", err)
+      if (botMessageAdded) {
+        setMessages(prev => {
+          const next = [...prev]
+          if (next.length > 0) {
+            const lastMsg = { ...next[next.length - 1] }
+            lastMsg.content = "Something went wrong reaching the server — please try again."
+            next[next.length - 1] = lastMsg
+          }
+          return next
+        })
+      } else {
+        setMessages(prev => [
+          ...prev,
+          {
+            role: "bot",
+            content: "Something went wrong reaching the server — please try again.",
+            confidence: null,
+            sources: [],
+          },
+        ])
+      }
     } finally {
       setIsTyping(false)
     }
