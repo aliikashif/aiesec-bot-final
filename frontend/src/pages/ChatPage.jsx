@@ -345,7 +345,7 @@ export default function ChatPage() {
             }}
           />
           <Button
-            onClick={sendMessage}
+            onClick={() => sendMessage()}
             disabled={!inputValue.trim() || isTyping}
             className="h-11 px-4 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all duration-150"
             style={{
