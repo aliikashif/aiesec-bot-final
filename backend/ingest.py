@@ -127,9 +127,23 @@ def create_vector_store(chunks: list) -> PGVector:
     if not chunks:
         return None
 
-    print(f"\n[DB] Writing {len(chunks)} chunk(s) to Supabase pgvector ...")
-    vector_store.add_documents(chunks)
-    print(f"[DONE] {len(chunks)} chunks stored in collection '{COLLECTION_NAME}'.")
+    print(f"\n[DB] Writing {len(chunks)} chunk(s) to Supabase pgvector in batches of 20...")
+    
+    batch_size = 20
+    success_count = 0
+    failed_count = 0
+    
+    for i in range(0, len(chunks), batch_size):
+        batch = chunks[i:i + batch_size]
+        try:
+            vector_store.add_documents(batch)
+            success_count += len(batch)
+            print(f"  [BATCH] Successfully wrote chunks {i+1} to {min(i+batch_size, len(chunks))} of {len(chunks)}", flush=True)
+        except Exception as e:
+            failed_count += len(batch)
+            print(f"  [BATCH ERROR] Failed to write chunks {i+1} to {min(i+batch_size, len(chunks))}: {e}", file=sys.stderr, flush=True)
+            
+    print(f"[DONE] {success_count} chunks stored in collection '{COLLECTION_NAME}' ({failed_count} failed).")
     return vector_store
 
 
@@ -174,7 +188,7 @@ def run_ingestion(file_paths: list = None, clear_collection: bool = False, progr
     if not pdf_files:
         if progress_callback:
             progress_callback("No PDF documents to process.", 1.0)
-        return {"chunks": 0, "files": 0}
+        return {"chunks": 0, "files": 0, "failed_chunks": 0}
 
     if progress_callback:
         progress_callback(f"Loading {len(pdf_files)} PDF file(s)...", 0.4)
@@ -194,7 +208,7 @@ def run_ingestion(file_paths: list = None, clear_collection: bool = False, progr
     if not all_documents:
         if progress_callback:
             progress_callback("No text could be extracted from PDFs.", 1.0)
-        return {"chunks": 0, "files": len(pdf_files)}
+        return {"chunks": 0, "files": len(pdf_files), "failed_chunks": 0}
 
     if progress_callback:
         progress_callback(f"Splitting {len(all_documents)} pages into chunks...", 0.6)
@@ -209,13 +223,35 @@ def run_ingestion(file_paths: list = None, clear_collection: bool = False, progr
     if progress_callback:
         progress_callback(f"Generating embeddings and writing {len(chunks)} chunk(s) to Supabase pgvector...", 0.8)
 
+    success_count = 0
+    failed_count = 0
+
     if chunks:
-        vector_store.add_documents(chunks)
+        batch_size = 20
+        total_batches = (len(chunks) + batch_size - 1) // batch_size
+        
+        for idx, i in enumerate(range(0, len(chunks), batch_size)):
+            batch = chunks[i:i + batch_size]
+            try:
+                vector_store.add_documents(batch)
+                success_count += len(batch)
+                print(f"  [BATCH] Successfully wrote chunks {i+1} to {min(i+batch_size, len(chunks))} of {len(chunks)}", flush=True)
+            except Exception as e:
+                failed_count += len(batch)
+                print(f"  [BATCH ERROR] Failed to write chunks {i+1} to {min(i+batch_size, len(chunks))}: {e}", file=sys.stderr, flush=True)
+                
+            if progress_callback:
+                current_progress = 0.8 + 0.2 * ((idx + 1) / total_batches)
+                progress_callback(f"Writing chunks ({success_count}/{len(chunks)} succeeded, {failed_count} failed)...", current_progress)
 
     if progress_callback:
         progress_callback("Ingestion complete!", 1.0)
 
-    return {"chunks": len(chunks), "files": len(pdf_files)}
+    return {
+        "chunks": success_count,
+        "files": len(pdf_files),
+        "failed_chunks": failed_count
+    }
 
 
 def main():
@@ -228,7 +264,7 @@ def main():
 
     try:
         result = run_ingestion(clear_collection=True, progress_callback=cli_progress)
-        print(f"\n[SUCCESS] Ingestion complete! {result['files']} file(s) ingested, {result['chunks']} chunks created.")
+        print(f"\n[SUCCESS] Ingestion complete! {result['files']} file(s) ingested, {result['chunks']} chunks created, {result['failed_chunks']} chunks failed.")
     except Exception as e:
         print(f"\n[ERROR] Ingestion failed: {e}")
         sys.exit(1)
