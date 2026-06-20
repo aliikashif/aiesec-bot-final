@@ -48,6 +48,7 @@ load_dotenv(dotenv_path=_ENV_PATH, override=True)
 
 groq_api_key = os.getenv("GROQ_API_KEY")
 google_api_key = os.getenv("GOOGLE_API_KEY")
+google_api_key_backup = os.getenv("GOOGLE_API_KEY_BACKUP")
 
 if not groq_api_key:
     raise EnvironmentError("GROQ_API_KEY not found. Please add it to your .env file.")
@@ -57,6 +58,8 @@ if not google_api_key:
 # Configure the legacy and new Gemini SDKs
 genai.configure(api_key=google_api_key)
 client = google_genai.Client(api_key=google_api_key)
+
+_active_key = "primary"
 
 # ─────────────────────────────────────────────
 COLLECTION_NAME = "aiesec_documents"
@@ -103,28 +106,59 @@ class EmbeddingRateLimitError(Exception):
     pass
 
 
+_request_timestamps = []
+_rate_limit_lock = asyncio.Lock()
+
+
+async def _wait_for_rate_limit():
+    global _request_timestamps
+    while True:
+        async with _rate_limit_lock:
+            now = time.time()
+            # Keep only timestamps within the last 60 seconds
+            _request_timestamps = [t for t in _request_timestamps if now - t < 60.0]
+            
+            if len(_request_timestamps) < 90:
+                _request_timestamps.append(now)
+                return
+            
+            # Calculate wait time based on oldest timestamp
+            oldest_t = _request_timestamps[0]
+            wait_time = 60.0 - (now - oldest_t) + 0.1
+            
+        if wait_time > 0:
+            await asyncio.sleep(wait_time)
+
+
 async def embed_chunks_in_batches(texts: list[str], model: str = "models/gemini-embedding-001") -> list[list[float]]:
     """
-    Embeds a list of text chunks in batches using the specified Gemini embedding model.
-    Includes proactive pacing delays and exponential backoff retry logic on rate limits.
+    Embeds a list of text chunks one-by-one using the specified Gemini embedding model.
+    Includes rolling-window rate limiting to stay under 90 requests/minute.
+    Supports switching to backup API key if primary is exhausted.
     """
     all_embeddings = []
     max_attempts = 7
+    global _active_key
     
-    for i in range(0, len(texts), BATCH_SIZE):
-        batch = texts[i:i + BATCH_SIZE]
-        
-        batch_embeddings = None
-        for attempt in range(max_attempts):
+    for text in texts:
+        embedding = None
+        attempt = 0
+        while attempt < max_attempts:
             try:
+                # Wait for rate limit before making request
+                await _wait_for_rate_limit()
+                
                 response = genai.embed_content(
                     model=model,
-                    content=batch,
+                    content=text,
                     output_dimensionality=768
                 )
-                batch_embeddings = response.get('embedding', [])
-                if not batch_embeddings and hasattr(response, 'embedding'):
-                    batch_embeddings = response.embedding
+                embedding = response.get('embedding', [])
+                if not embedding and hasattr(response, 'embedding'):
+                    embedding = response.embedding
+                
+                # Log success showing which key was used
+                print(f"[INFO] Successfully embedded chunk using {_active_key} key.", flush=True)
                 break  # Successful API call, exit the retry loop
             except Exception as e:
                 err_msg = str(e).lower()
@@ -135,23 +169,45 @@ async def embed_chunks_in_batches(texts: list[str], model: str = "models/gemini-
                     "resourceexhausted" in err_msg or
                     isinstance(e, ResourceExhausted)
                 )
-                if is_rate_limit and attempt < max_attempts - 1:
-                    sleep_time = min(MIN_DELAY * (2 ** attempt), 60.0)
-                    print(f"[WARNING] Embedding rate limit hit. Retrying in {sleep_time:.1f}s... (Attempt {attempt + 1}/{max_attempts})", flush=True)
-                    await asyncio.sleep(sleep_time)
+                if is_rate_limit:
+                    # Check if we can switch to backup key
+                    if _active_key == "primary" and google_api_key_backup:
+                        print("[INFO] Primary Gemini API key quota exhausted. Switching to backup key for remainder of this run.", flush=True)
+                        _active_key = "backup"
+                        genai.configure(api_key=google_api_key_backup)
+                        
+                        # Reset rate limit queue for the new backup key
+                        async with _rate_limit_lock:
+                            global _request_timestamps
+                            _request_timestamps = []
+                        
+                        # Reset attempts count to retry the same chunk with the backup key
+                        attempt = 0
+                        continue
+                    
+                    # If we cannot switch key, wait/back off if we still have attempts left
+                    if attempt < max_attempts - 1:
+                        # Artificially fill the rolling window to force waiting on retry
+                        async with _rate_limit_lock:
+                            now = time.time()
+                            _request_timestamps = [t for t in _request_timestamps if now - t < 60.0]
+                            if len(_request_timestamps) < 90:
+                                needed = 90 - len(_request_timestamps)
+                                _request_timestamps.extend([now] * needed)
+                        print(f"[WARNING] Embedding rate limit hit on {_active_key} key. Rolling window filled. Waiting to retry... (Attempt {attempt + 1}/{max_attempts})", flush=True)
+                        attempt += 1
+                    else:
+                        # Raise final failure
+                        raise e
                 else:
-                    # Raise non-rate-limit errors or final failure immediately
+                    # Raise non-rate-limit errors immediately
                     raise e
                     
-        if batch_embeddings is None:
+        if embedding is None:
             raise EmbeddingRateLimitError("We're experiencing high traffic right now, please try again in a moment.")
             
-        all_embeddings.extend(batch_embeddings)
+        all_embeddings.append(embedding)
         
-        # Proactively sleep between batches to stay below request limits
-        if i + BATCH_SIZE < len(texts):
-            await asyncio.sleep(MIN_DELAY)
-            
     return all_embeddings
 
 
