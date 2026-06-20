@@ -109,7 +109,7 @@ async def embed_chunks_in_batches(texts: list[str], model: str = "models/gemini-
     Includes proactive pacing delays and exponential backoff retry logic on rate limits.
     """
     all_embeddings = []
-    max_attempts = 5
+    max_attempts = 7
     
     for i in range(0, len(texts), BATCH_SIZE):
         batch = texts[i:i + BATCH_SIZE]
@@ -136,7 +136,7 @@ async def embed_chunks_in_batches(texts: list[str], model: str = "models/gemini-
                     isinstance(e, ResourceExhausted)
                 )
                 if is_rate_limit and attempt < max_attempts - 1:
-                    sleep_time = MIN_DELAY * (2 ** attempt)
+                    sleep_time = min(MIN_DELAY * (2 ** attempt), 60.0)
                     print(f"[WARNING] Embedding rate limit hit. Retrying in {sleep_time:.1f}s... (Attempt {attempt + 1}/{max_attempts})", flush=True)
                     await asyncio.sleep(sleep_time)
                 else:
