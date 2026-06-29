@@ -33,8 +33,8 @@ export default function DocumentsPage() {
 
   return (
     <div
-      className="relative h-full w-full overflow-y-auto text-white p-8 font-sans"
-      style={{ background: "#0d0d1a" }}
+      className="relative h-full w-full overflow-y-auto text-[#0d0d1a] p-8 font-sans"
+      style={{ background: "#FCFBF4" }}
     >
       {loading ? (
         <div className="absolute inset-0 z-40 bg-black flex items-center justify-center overflow-hidden">
@@ -43,21 +43,21 @@ export default function DocumentsPage() {
       ) : (
         <div className="max-w-4xl mx-auto">
           <header className="mb-8">
-            <h1 className="text-3xl font-bold text-white tracking-tight">Documents</h1>
-            <p className="text-[13px] mt-1" style={{ color: "#9999bb" }}>
+            <h1 className="text-3xl font-bold text-[#140586] tracking-tight">Documents</h1>
+            <p className="text-[13px] mt-1" style={{ color: "rgba(20, 5, 134, 0.6)" }}>
               All policy documents available to the bot
             </p>
           </header>
 
           {error && (
             <div className="flex justify-center items-center py-20 text-center">
-              <p className="text-sm font-medium text-red-400">{error}</p>
+              <p className="text-sm font-medium text-red-500">{error}</p>
             </div>
           )}
 
           {!error && documents.length === 0 && (
             <div className="flex justify-center items-center py-20 text-center">
-              <p className="text-sm" style={{ color: "#9999bb" }}>
+              <p className="text-sm" style={{ color: "rgba(20, 5, 134, 0.6)" }}>
                 No documents uploaded yet.
               </p>
             </div>
@@ -68,16 +68,16 @@ export default function DocumentsPage() {
               {documents.map((doc, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between p-5 rounded-xl transition-all duration-150 hover:bg-white/[0.02]"
-                  style={{ background: "#1a1a3e" }}
+                  className="flex items-center justify-between p-5 rounded-xl border border-[#140586]/10 transition-all duration-150 hover:bg-slate-50 shadow-sm"
+                  style={{ background: "#ffffff" }}
                 >
                   <div className="flex flex-col gap-1">
-                    <span className="font-semibold text-sm text-white">{doc.filename}</span>
-                    <div className="flex items-center gap-3 text-xs" style={{ color: "#9999bb" }}>
+                    <span className="font-semibold text-sm text-[#0d0d1a]">{doc.filename}</span>
+                    <div className="flex items-center gap-3 text-xs" style={{ color: "rgba(20, 5, 134, 0.6)" }}>
                       <span>{doc.chunks} chunks</span>
-                      <span className="w-1 h-1 rounded-full bg-white/20" />
+                      <span className="w-1 h-1 rounded-full bg-slate-300" />
                       {doc.has_summary ? (
-                        <span className="font-semibold text-[#c1ff72]">Summary ✓</span>
+                        <span className="font-bold text-[#16a34a]">Summary ✓</span>
                       ) : (
                         <span className="opacity-60">No summary</span>
                       )}
@@ -86,11 +86,11 @@ export default function DocumentsPage() {
 
                   <button
                     onClick={() => handleDownload(doc.filename)}
-                    className="px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all duration-150 cursor-pointer hover:bg-[#c1ff72] hover:text-[#0d0d1a]"
+                    className="px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all duration-150 cursor-pointer hover:bg-[#63B2FB] hover:text-white"
                     style={{
-                      color: "#c1ff72",
-                      borderColor: "#c1ff72",
-                      background: "rgba(193,255,114,0.05)"
+                      color: "#140586",
+                      borderColor: "rgba(20, 5, 134, 0.2)",
+                      background: "rgba(99, 178, 251, 0.1)"
                     }}
                   >
                     Download

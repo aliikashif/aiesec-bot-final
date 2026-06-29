@@ -7,7 +7,7 @@ import AdminPage from "@/pages/AdminPage"
 export default function App() {
   return (
     <BrowserRouter>
-      <div className="flex flex-row h-screen w-screen bg-[#0d0d1a] overflow-hidden text-white font-sans">
+      <div className="flex flex-row h-screen w-screen bg-[#FCFBF4] overflow-hidden text-[#0d0d1a] font-sans">
         {/* Left: Collapsible Sidebar */}
         <Sidebar />
 

@@ -24,15 +24,15 @@ export default function SuggestedQuestions({ onSelect }) {
       <div className="text-center space-y-3">
         <div
           className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center mb-4 shadow-lg"
-          style={{ background: "linear-gradient(135deg, #140586, #2d1b8e)" }}
+          style={{ background: "linear-gradient(135deg, #63B2FB, #140586)" }}
         >
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#c1ff72" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
             <path d="M8 12h8M12 8v8"/>
           </svg>
         </div>
-        <h2 className="text-2xl font-bold text-white">AIESEC F&amp;L Assistant</h2>
-        <p className="text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>
+        <h2 className="text-2xl font-bold text-[#140586]">AIESEC F&amp;L Assistant</h2>
+        <p className="text-sm font-medium" style={{ color: "rgba(20, 5, 134, 0.6)" }}>
           Ask me anything about Finance &amp; Legal policies
         </p>
       </div>
@@ -43,23 +43,23 @@ export default function SuggestedQuestions({ onSelect }) {
           <button
             key={i}
             onClick={() => onSelect(s.text)}
-            className="group text-left rounded-xl px-4 py-4 transition-all duration-200 border"
+            className="group text-left rounded-xl px-4 py-4 transition-all duration-200 border cursor-pointer shadow-sm"
             style={{
-              background: "#1a1a3e",
-              borderColor: "rgba(193,255,114,0.2)",
+              background: "#ffffff",
+              borderColor: "rgba(20, 5, 134, 0.1)",
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.borderColor = "#c1ff72"
-              e.currentTarget.style.background = "#1e1e4a"
+              e.currentTarget.style.borderColor = "#63B2FB"
+              e.currentTarget.style.background = "rgba(99, 178, 251, 0.05)"
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.borderColor = "rgba(193,255,114,0.2)"
-              e.currentTarget.style.background = "#1a1a3e"
+              e.currentTarget.style.borderColor = "rgba(20, 5, 134, 0.1)"
+              e.currentTarget.style.background = "#ffffff"
             }}
           >
             <span className="text-xl mb-2 block">{s.icon}</span>
-            <span className="text-sm font-medium text-white leading-snug">{s.text}</span>
-            <span className="block mt-1 text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>
+            <span className="text-sm font-semibold text-[#140586] leading-snug">{s.text}</span>
+            <span className="block mt-1 text-xs font-medium" style={{ color: "rgba(20, 5, 134, 0.5)" }}>
               Click to ask →
             </span>
           </button>

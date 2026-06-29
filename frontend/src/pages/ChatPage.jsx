@@ -293,7 +293,7 @@ export default function ChatPage() {
   return (
     <div
       className="flex flex-col h-full w-full overflow-hidden"
-      style={{ background: "#0d0d1a", fontFamily: "'Inter', sans-serif" }}
+      style={{ background: "#FCFBF4", fontFamily: "'Inter', sans-serif" }}
     >
       {/* 1. Header */}
       <Header />
@@ -328,7 +328,7 @@ export default function ChatPage() {
       {/* 5. Input bar */}
       <div
         className="flex-shrink-0 border-t px-4 py-3"
-        style={{ background: "#0d0d1a", borderColor: "rgba(255,255,255,0.07)" }}
+        style={{ background: "#FCFBF4", borderColor: "rgba(20, 5, 134, 0.08)" }}
       >
         <div className="flex gap-2 max-w-3xl mx-auto">
           <Input
@@ -338,19 +338,19 @@ export default function ChatPage() {
             onKeyDown={handleKeyDown}
             placeholder="Ask about finance or legal policies…"
             disabled={isTyping}
-            className="flex-1 text-sm text-white placeholder:text-white/30 rounded-xl border h-11 px-4 focus-visible:ring-1 focus-visible:ring-[#c1ff72] focus-visible:border-[#c1ff72]"
+            className="flex-1 text-sm text-[#0d0d1a] placeholder:text-slate-400 rounded-xl border h-11 px-4 focus-visible:ring-1 focus-visible:ring-[#63B2FB] focus-visible:border-[#63B2FB]"
             style={{
-              background: "#1a1a3e",
-              borderColor: "rgba(255,255,255,0.12)",
+              background: "#ffffff",
+              borderColor: "rgba(20, 5, 134, 0.15)",
             }}
           />
           <Button
             onClick={() => sendMessage()}
             disabled={!inputValue.trim() || isTyping}
-            className="h-11 px-4 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all duration-150"
+            className="h-11 px-4 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all duration-150 cursor-pointer"
             style={{
-              background: inputValue.trim() && !isTyping ? "#c1ff72" : "rgba(193,255,114,0.15)",
-              color: inputValue.trim() && !isTyping ? "#0d0d1a" : "rgba(193,255,114,0.4)",
+              background: inputValue.trim() && !isTyping ? "#63B2FB" : "rgba(99, 178, 251, 0.2)",
+              color: inputValue.trim() && !isTyping ? "#ffffff" : "rgba(20, 5, 134, 0.4)",
               border: "none",
             }}
           >
@@ -360,7 +360,7 @@ export default function ChatPage() {
         </div>
 
         {/* Hint */}
-        <p className="text-center text-[11px] mt-2" style={{ color: "rgba(255,255,255,0.2)" }}>
+        <p className="text-center text-[11px] mt-2" style={{ color: "rgba(20, 5, 134, 0.5)" }}>
           Press Enter to send · AI responses are for guidance only
         </p>
       </div>
