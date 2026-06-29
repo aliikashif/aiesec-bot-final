@@ -28,26 +28,26 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000
     return (
       <header
         className="flex items-center gap-3 px-5 py-3.5 shadow-lg flex-shrink-0 z-10"
-        style={{ background: "#140586" }}
+        style={{ background: "#63B2FB" }}
       >
         {/* Bot icon */}
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(193,255,114,0.15)" }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c1ff72" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(20, 5, 134, 0.12)" }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#140586" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            <circle cx="12" cy="16" r="1" fill="#c1ff72" />
+            <circle cx="12" cy="16" r="1" fill="#140586" />
           </svg>
         </div>
 
         <div>
-          <h1 className="text-white font-semibold text-sm leading-tight">AIESEC F&amp;L Assistant</h1>
-          <p className="text-xs" style={{ color: "rgba(193,255,114,0.8)" }}>Finance &amp; Legal RAG Chatbot</p>
+          <h1 className="text-[#140586] font-bold text-sm leading-tight">AIESEC F&amp;L Assistant</h1>
+          <p className="text-xs font-medium" style={{ color: "rgba(20, 5, 134, 0.8)" }}>Finance &amp; Legal RAG Chatbot</p>
         </div>
 
         {/* Status pill */}
-        <div className="ml-auto flex items-center gap-1.5 rounded-full px-3 py-1" style={{ background: "rgba(255,255,255,0.08)" }}>
-          <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-          <span className="text-xs text-white/70">Online</span>
+        <div className="ml-auto flex items-center gap-1.5 rounded-full px-3 py-1" style={{ background: "rgba(20, 5, 134, 0.08)" }}>
+          <span className="w-2 h-2 rounded-full bg-green-600 animate-pulse" />
+          <span className="text-xs font-semibold text-[#140586]/70">Online</span>
         </div>
       </header>
     )
