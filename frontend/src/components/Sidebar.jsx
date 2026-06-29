@@ -14,24 +14,24 @@ export default function Sidebar() {
 
   return (
     <div
-      className={`flex flex-col h-screen bg-[#1a1a3e] text-white transition-all duration-200 flex-shrink-0 select-none overflow-hidden ${
+      className={`flex flex-col h-screen bg-[#63B2FB] text-[#140586] transition-all duration-200 flex-shrink-0 select-none overflow-hidden ${
         isExpanded ? "w-[220px]" : "w-14"
       }`}
     >
       {/* Top Header & Toggle Button */}
       <div
-        className={`flex items-center h-[60px] border-b border-white/5 ${
+        className={`flex items-center h-[60px] border-b border-[#140586]/15 ${
           isExpanded ? "justify-between px-4" : "justify-center"
         }`}
       >
         {isExpanded && (
-          <span className="font-bold text-[#c1ff72] text-sm tracking-wider uppercase">
+          <span className="font-bold text-[#140586] text-sm tracking-wider uppercase">
             AIESEC BOT
           </span>
         )}
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="p-1.5 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors duration-150 cursor-pointer"
+          className="p-1.5 rounded-lg hover:bg-white/20 text-[#140586]/80 hover:text-[#140586] transition-colors duration-150 cursor-pointer"
           title={isExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
           aria-label={isExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
         >
@@ -80,8 +80,8 @@ export default function Sidebar() {
                 isExpanded ? "px-4 gap-3 justify-start" : "px-0 justify-center"
               } ${
                 isActive
-                  ? "text-[#c1ff72] bg-white/10 font-semibold"
-                  : "text-white hover:bg-white/5"
+                  ? "text-[#140586] bg-white/50 font-semibold shadow-sm"
+                  : "text-[#140586]/80 hover:bg-white/25"
               }`}
             >
               <span className="text-xl flex items-center justify-center flex-shrink-0">
