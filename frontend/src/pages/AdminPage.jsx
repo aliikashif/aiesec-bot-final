@@ -306,7 +306,6 @@ export default function AdminPage() {
                 <thead>
                   <tr className="border-b border-white/10 text-xs uppercase" style={{ color: "#9999bb" }}>
                     <th className="py-3 px-4 font-semibold">Filename</th>
-                    <th className="py-3 px-4 font-semibold text-center">Chunks</th>
                     <th className="py-3 px-4 font-semibold text-center">Summary</th>
                     <th className="py-3 px-4 font-semibold text-right">Actions</th>
                   </tr>
@@ -320,11 +319,13 @@ export default function AdminPage() {
 
                     return (
                       <tr key={idx} className="hover:bg-white/[0.01] transition-colors">
-                        <td className="py-4 px-4 font-medium text-white max-w-xs truncate">
-                          {doc.filename}
-                        </td>
-                        <td className="py-4 px-4 text-center" style={{ color: "#9999bb" }}>
-                          {doc.chunks}
+                        <td className="py-4 px-4 font-medium text-white max-w-xs">
+                          <div className="flex flex-col gap-0.5">
+                            <span className="truncate block">{doc.filename}</span>
+                            <span className="text-xs font-normal" style={{ color: "#9999bb" }}>
+                              Indexed: {doc.chunks} chunks
+                            </span>
+                          </div>
                         </td>
                         <td className="py-4 px-4 text-center">
                           {doc.has_summary ? (

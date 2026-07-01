@@ -10,7 +10,7 @@ import os
 import psycopg2
 from pathlib import Path
 
-from rag import get_answer, load_vector_store, get_db_url, EmbeddingRateLimitError
+from rag import get_answer, load_vector_store, get_db_url, EmbeddingRateLimitError, COLLECTION_NAME
 from fastapi.middleware.cors import CORSMiddleware
 from ingest import run_ingestion
 from generate_summaries import generate_summary_for_file
@@ -133,17 +133,30 @@ def get_documents():
         conn = psycopg2.connect(db_url)
         cur = conn.cursor()
         
+        # Log all unique sources in the DB first for debugging
+        cur.execute("SELECT DISTINCT cmetadata->>'source' FROM langchain_pg_embedding WHERE cmetadata->>'source' IS NOT NULL")
+        db_sources = [row[0] for row in cur.fetchall()]
+        print(f"[DEBUG GET /documents] Unique source strings in DB: {db_sources}", flush=True)
+        
         results = []
         for filename in pdf_files:
             # Always normalize filenames: filename.replace("\\", "/")
             normalized = "documents/" + filename.replace('\\', '/')
             
-            # Query langchain_pg_embedding to get chunk count
+            # Query langchain_pg_embedding joining with collection, normalizing backslashes
             cur.execute(
-                "SELECT COUNT(*) FROM langchain_pg_embedding WHERE cmetadata->>'source' = %s",
-                (normalized,)
+                """
+                SELECT COUNT(*) 
+                FROM langchain_pg_embedding emb
+                JOIN langchain_pg_collection col ON emb.collection_id = col.uuid
+                WHERE col.name = %s 
+                  AND REPLACE(emb.cmetadata->>'source', '\\', '/') = %s
+                """,
+                (COLLECTION_NAME, normalized)
             )
             chunks = cur.fetchone()[0] or 0
+            
+            print(f"[DEBUG GET /documents] Matching filename '{filename}' (normalized: '{normalized}') -> {chunks} chunks", flush=True)
             
             # Query document_summaries to check if a summary exists
             cur.execute(
