@@ -1,5 +1,5 @@
 # pyrefly: ignore [missing-import]
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, BackgroundTasks
 # pyrefly: ignore [missing-import]
 from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
 from pydantic import BaseModel
@@ -10,12 +10,22 @@ import os
 import psycopg2
 from pathlib import Path
 
-from rag import get_answer, load_vector_store, get_db_url
+from rag import get_answer, load_vector_store, get_db_url, EmbeddingRateLimitError, COLLECTION_NAME
 from fastapi.middleware.cors import CORSMiddleware
 from ingest import run_ingestion
 from generate_summaries import generate_summary_for_file
 
 app = FastAPI()
+
+
+def process_document_in_background(ingest_path: str):
+    """Ingests the saved document in the background to avoid blocking requests."""
+    try:
+        print(f"[BACKGROUND] Starting ingestion for: {ingest_path}", flush=True)
+        run_ingestion(file_paths=[ingest_path], clear_collection=False)
+        print(f"[BACKGROUND] Ingestion completed successfully for: {ingest_path}", flush=True)
+    except Exception as e:
+        print(f"[BACKGROUND_ERROR] Ingestion failed for {ingest_path}: {e}", flush=True)
 app.add_middleware(
     CORSMiddleware,
     allow_origin_regex=r"^https?://(aiesec-bot\.vercel\.app|aiesec-[a-z0-9]+-aliikashifs-projects\.vercel\.app|localhost:(5173|5174))$",
@@ -58,6 +68,11 @@ def chat(request: ChatRequest):
             "sources": result.get("sources"),
             "farewell": result.get("farewell"),
         }
+    except EmbeddingRateLimitError as e:
+        return JSONResponse(
+            status_code=429,
+            content={"error": str(e)}
+        )
     except Exception as e:
         return JSONResponse(
             status_code=500,
@@ -68,14 +83,25 @@ def chat(request: ChatRequest):
 @app.post("/chat/stream")
 def chat_stream(request: ChatRequest):
     global vector_store
-    if vector_store is None:
-        vector_store = load_vector_store()
+    try:
+        if vector_store is None:
+            vector_store = load_vector_store()
+        
+        chat_history_as_tuples = [tuple(item) for item in request.chat_history]
+        result = get_answer(request.question, vector_store, chat_history_as_tuples)
+    except EmbeddingRateLimitError as e:
+        return JSONResponse(
+            status_code=429,
+            content={"error": str(e)}
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e)}
+        )
 
     async def event_stream():
         try:
-            chat_history_as_tuples = [tuple(item) for item in request.chat_history]
-            result = get_answer(request.question, vector_store, chat_history_as_tuples)
-            
             answer = result.get("answer") or ""
             words = answer.split(" ")
             
@@ -107,17 +133,30 @@ def get_documents():
         conn = psycopg2.connect(db_url)
         cur = conn.cursor()
         
+        # Log all unique sources in the DB first for debugging
+        cur.execute("SELECT DISTINCT cmetadata->>'source' FROM langchain_pg_embedding WHERE cmetadata->>'source' IS NOT NULL")
+        db_sources = [row[0] for row in cur.fetchall()]
+        print(f"[DEBUG GET /documents] Unique source strings in DB: {db_sources}", flush=True)
+        
         results = []
         for filename in pdf_files:
             # Always normalize filenames: filename.replace("\\", "/")
             normalized = "documents/" + filename.replace('\\', '/')
             
-            # Query langchain_pg_embedding to get chunk count
+            # Query langchain_pg_embedding joining with collection, normalizing backslashes
             cur.execute(
-                "SELECT COUNT(*) FROM langchain_pg_embedding WHERE cmetadata->>'source' = %s",
-                (normalized,)
+                """
+                SELECT COUNT(*) 
+                FROM langchain_pg_embedding emb
+                JOIN langchain_pg_collection col ON emb.collection_id = col.uuid
+                WHERE col.name = %s 
+                  AND REPLACE(emb.cmetadata->>'source', '\\', '/') = %s
+                """,
+                (COLLECTION_NAME, normalized)
             )
             chunks = cur.fetchone()[0] or 0
+            
+            print(f"[DEBUG GET /documents] Matching filename '{filename}' (normalized: '{normalized}') -> {chunks} chunks", flush=True)
             
             # Query document_summaries to check if a summary exists
             cur.execute(
@@ -142,12 +181,10 @@ def get_documents():
 
 
 @app.post("/documents/upload")
-def upload_document(file: UploadFile = File(...)):
+def upload_document(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
     if not file.filename.lower().endswith(".pdf"):
         return JSONResponse(status_code=400, content={"error": "Only PDF files are supported."})
         
-    db_url = get_db_url()
-    
     filename = os.path.basename(file.filename.replace("\\", "/"))
     file_path = DOCUMENTS_DIR / filename
     
@@ -157,11 +194,11 @@ def upload_document(file: UploadFile = File(...)):
         with open(file_path, "wb") as buffer:
             buffer.write(file.file.read())
             
-        # Run ingestion for this file
+        # Schedule the chunking, embedding, and loading to run in the background
         ingest_path = f"documents/{filename}"
-        run_ingestion(file_paths=[ingest_path], clear_collection=False)
+        background_tasks.add_task(process_document_in_background, ingest_path)
         
-        return {"status": "ok", "filename": filename}
+        return {"status": "processing", "filename": filename}
     except Exception as e:
         if file_path.exists():
             try:

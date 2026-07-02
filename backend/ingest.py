@@ -11,12 +11,13 @@ Run this script to:
 import os
 import sys
 import re
+import hashlib
 from pathlib import Path
 
 from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from rag import LightweightBGEEmbeddings
+from rag import GeminiEmbeddings
 from langchain_postgres import PGVector
 
 # Load environment variables from .env
@@ -30,9 +31,6 @@ DOCUMENTS_DIR = "documents"          # Folder containing your PDF files
 COLLECTION_NAME = "aiesec_documents" # pgvector collection name
 CHUNK_SIZE = 1000                   # Characters per chunk
 CHUNK_OVERLAP = 200                 # Overlap between consecutive chunks
-# BRANCH: feature/bge-embedding — change back to all-MiniLM-L6-v2 
-# on main, or update both files together if merging
-EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
 
 
 def get_db_url() -> str:
@@ -109,8 +107,8 @@ def create_vector_store(chunks: list) -> PGVector:
     Generate HuggingFace embeddings for every chunk and store them
     in Supabase pgvector.
     """
-    print(f"\n[EMBED] Loading embedding model '{EMBEDDING_MODEL}' ...")
-    embeddings = LightweightBGEEmbeddings()
+    print("\n[EMBED] Loading Gemini embedding model ...")
+    embeddings = GeminiEmbeddings()
 
     db_url = get_db_url()
 
@@ -130,9 +128,23 @@ def create_vector_store(chunks: list) -> PGVector:
     if not chunks:
         return None
 
-    print(f"\n[DB] Writing {len(chunks)} chunk(s) to Supabase pgvector ...")
-    vector_store.add_documents(chunks)
-    print(f"[DONE] {len(chunks)} chunks stored in collection '{COLLECTION_NAME}'.")
+    print(f"\n[DB] Writing {len(chunks)} chunk(s) to Supabase pgvector in batches of 20...")
+    
+    batch_size = 20
+    success_count = 0
+    failed_count = 0
+    
+    for i in range(0, len(chunks), batch_size):
+        batch = chunks[i:i + batch_size]
+        try:
+            vector_store.add_documents(batch)
+            success_count += len(batch)
+            print(f"  [BATCH] Successfully wrote chunks {i+1} to {min(i+batch_size, len(chunks))} of {len(chunks)}", flush=True)
+        except Exception as e:
+            failed_count += len(batch)
+            print(f"  [BATCH ERROR] Failed to write chunks {i+1} to {min(i+batch_size, len(chunks))}: {e}", file=sys.stderr, flush=True)
+            
+    print(f"[DONE] {success_count} chunks stored in collection '{COLLECTION_NAME}' ({failed_count} failed).")
     return vector_store
 
 
@@ -158,7 +170,7 @@ def run_ingestion(file_paths: list = None, clear_collection: bool = False, progr
     except Exception as e:
         raise ValueError(f"Configuration error: {e}")
 
-    embeddings = LightweightBGEEmbeddings()
+    embeddings = GeminiEmbeddings()
 
     try:
         vector_store = PGVector(
@@ -177,7 +189,7 @@ def run_ingestion(file_paths: list = None, clear_collection: bool = False, progr
     if not pdf_files:
         if progress_callback:
             progress_callback("No PDF documents to process.", 1.0)
-        return {"chunks": 0, "files": 0}
+        return {"chunks": 0, "files": 0, "failed_chunks": 0}
 
     if progress_callback:
         progress_callback(f"Loading {len(pdf_files)} PDF file(s)...", 0.4)
@@ -197,7 +209,7 @@ def run_ingestion(file_paths: list = None, clear_collection: bool = False, progr
     if not all_documents:
         if progress_callback:
             progress_callback("No text could be extracted from PDFs.", 1.0)
-        return {"chunks": 0, "files": len(pdf_files)}
+        return {"chunks": 0, "files": len(pdf_files), "failed_chunks": 0}
 
     if progress_callback:
         progress_callback(f"Splitting {len(all_documents)} pages into chunks...", 0.6)
@@ -209,16 +221,84 @@ def run_ingestion(file_paths: list = None, clear_collection: bool = False, progr
     )
     chunks = splitter.split_documents(all_documents)
 
-    if progress_callback:
-        progress_callback(f"Generating embeddings and writing {len(chunks)} chunk(s) to Supabase pgvector...", 0.8)
+    # 1. Fetch existing chunks from DB
+    existing_chunks = set()
+    try:
+        import psycopg2
+        _clean_url = db_url
+        if "[" in _clean_url and "]" in _clean_url:
+            import re as _re
+            _clean_url = _re.sub(r'\[(.*?)\]', r'\1', _clean_url)
+        
+        conn = psycopg2.connect(_clean_url)
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT emb.cmetadata->>'source', emb.document 
+            FROM langchain_pg_embedding emb
+            JOIN langchain_pg_collection col ON emb.collection_id = col.uuid
+            WHERE col.name = %s;
+        """, (COLLECTION_NAME,))
+        rows = cur.fetchall()
+        for src, doc in rows:
+            if src and doc:
+                clean_src = src.replace("\\", "/")
+                existing_chunks.add((clean_src, hashlib.sha256(doc.encode("utf-8")).hexdigest()))
+        cur.close()
+        conn.close()
+        print(f"[INFO] Found {len(existing_chunks)} existing chunk(s) in collection '{COLLECTION_NAME}' inside Supabase.")
+    except Exception as e:
+        print(f"[WARNING] Failed to fetch existing chunks from database: {e}. Assuming empty collection.")
 
-    if chunks:
-        vector_store.add_documents(chunks)
+    # 2. Filter out already indexed chunks
+    missing_chunks = []
+    skipped_count = 0
+    for chunk in chunks:
+        src = chunk.metadata.get("source", "").replace("\\", "/")
+        text = chunk.page_content
+        text_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        
+        if (src, text_hash) in existing_chunks:
+            skipped_count += 1
+        else:
+            missing_chunks.append(chunk)
+
+    print(f"[INFO] Out of {len(chunks)} total chunks, {skipped_count} already exist in database and will be skipped. {len(missing_chunks)} chunks are missing and need embedding.")
+
+    if progress_callback:
+        progress_callback(
+            f"Generating embeddings and writing {len(missing_chunks)} missing chunk(s) (skipping {skipped_count} existing) to Supabase pgvector...", 
+            0.8
+        )
+
+    success_count = 0
+    failed_count = 0
+
+    if missing_chunks:
+        batch_size = 20
+        total_batches = (len(missing_chunks) + batch_size - 1) // batch_size
+        
+        for idx, i in enumerate(range(0, len(missing_chunks), batch_size)):
+            batch = missing_chunks[i:i + batch_size]
+            try:
+                vector_store.add_documents(batch)
+                success_count += len(batch)
+                print(f"  [BATCH] Successfully wrote chunks {i+1} to {min(i+batch_size, len(missing_chunks))} of {len(missing_chunks)}", flush=True)
+            except Exception as e:
+                failed_count += len(batch)
+                print(f"  [BATCH ERROR] Failed to write chunks {i+1} to {min(i+batch_size, len(missing_chunks))}: {e}", file=sys.stderr, flush=True)
+                
+            if progress_callback:
+                current_progress = 0.8 + 0.2 * ((idx + 1) / total_batches)
+                progress_callback(f"Writing chunks ({success_count}/{len(missing_chunks)} succeeded, {failed_count} failed)...", current_progress)
 
     if progress_callback:
         progress_callback("Ingestion complete!", 1.0)
 
-    return {"chunks": len(chunks), "files": len(pdf_files)}
+    return {
+        "chunks": success_count,
+        "files": len(pdf_files),
+        "failed_chunks": failed_count
+    }
 
 
 def main():
@@ -230,8 +310,8 @@ def main():
         print(f"[{int(percentage * 100)}%] {stage}")
 
     try:
-        result = run_ingestion(clear_collection=True, progress_callback=cli_progress)
-        print(f"\n[SUCCESS] Ingestion complete! {result['files']} file(s) ingested, {result['chunks']} chunks created.")
+        result = run_ingestion(clear_collection=False, progress_callback=cli_progress)
+        print(f"\n[SUCCESS] Ingestion complete! {result['files']} file(s) ingested, {result['chunks']} chunks created, {result['failed_chunks']} chunks failed.")
     except Exception as e:
         print(f"\n[ERROR] Ingestion failed: {e}")
         sys.exit(1)

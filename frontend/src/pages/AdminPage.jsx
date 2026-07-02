@@ -23,7 +23,7 @@ export default function AdminPage() {
   const handleUnlock = () => {
     setIsVerifying(true)
     setPasswordError("")
-    
+
     // Simulate verification delay
     setTimeout(() => {
       if (passwordInput === "aiesec2024") {
@@ -72,7 +72,7 @@ export default function AdminPage() {
 
     setUploadStatus("uploading")
     setUploadError("")
-    
+
     const formData = new FormData()
     formData.append("file", selectedFile)
 
@@ -238,7 +238,7 @@ export default function AdminPage() {
           style={{ background: "#ffffff" }}
         >
           <h3 className="text-lg font-semibold tracking-tight text-[#140586]">Upload &amp; Index Document</h3>
-          
+
           <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
             <input
               id="admin-file-input"
@@ -266,7 +266,7 @@ export default function AdminPage() {
           </div>
 
           {uploadStatus === "success" && (
-            <p className="text-xs text-[#16a34a] font-semibold mt-1">Upload and ingestion successful!</p>
+            <p className="text-xs text-[#c1ff72] font-semibold mt-1">Upload successful! Ingestion is processing in the background (refresh to see chunks update).</p>
           )}
           {uploadStatus === "error" && (
             <p className="text-xs text-red-500 font-semibold mt-1">Upload failed: {uploadError}</p>
@@ -306,7 +306,6 @@ export default function AdminPage() {
                 <thead>
                   <tr className="border-b border-slate-100 text-xs uppercase" style={{ color: "rgba(20, 5, 134, 0.6)" }}>
                     <th className="py-3 px-4 font-semibold">Filename</th>
-                    <th className="py-3 px-4 font-semibold text-center">Chunks</th>
                     <th className="py-3 px-4 font-semibold text-center">Summary</th>
                     <th className="py-3 px-4 font-semibold text-right">Actions</th>
                   </tr>
@@ -319,12 +318,14 @@ export default function AdminPage() {
                     const isAnyLoading = !!status
 
                     return (
-                      <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                        <td className="py-4 px-4 font-medium text-[#0d0d1a] max-w-xs truncate">
-                          {doc.filename}
-                        </td>
-                        <td className="py-4 px-4 text-center" style={{ color: "rgba(20, 5, 134, 0.6)" }}>
-                          {doc.chunks}
+                      <tr key={idx} className="hover:bg-white/[0.01] transition-colors">
+                        <td className="py-4 px-4 font-medium text-white max-w-xs">
+                          <div className="flex flex-col gap-0.5">
+                            <span className="truncate block">{doc.filename}</span>
+                            <span className="text-xs font-normal" style={{ color: "#9999bb" }}>
+                              Indexed: {doc.chunks} chunks
+                            </span>
+                          </div>
                         </td>
                         <td className="py-4 px-4 text-center">
                           {doc.has_summary ? (

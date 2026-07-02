@@ -72,10 +72,8 @@ export default function DocumentsPage() {
                   style={{ background: "#ffffff" }}
                 >
                   <div className="flex flex-col gap-1">
-                    <span className="font-semibold text-sm text-[#0d0d1a]">{doc.filename}</span>
-                    <div className="flex items-center gap-3 text-xs" style={{ color: "rgba(20, 5, 134, 0.6)" }}>
-                      <span>{doc.chunks} chunks</span>
-                      <span className="w-1 h-1 rounded-full bg-slate-300" />
+                    <span className="font-semibold text-sm text-white">{doc.filename}</span>
+                    <div className="flex items-center gap-3 text-xs" style={{ color: "#9999bb" }}>
                       {doc.has_summary ? (
                         <span className="font-bold text-[#16a34a]">Summary ✓</span>
                       ) : (
