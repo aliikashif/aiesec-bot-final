@@ -7,7 +7,7 @@ export default function Sidebar() {
   const location = useLocation()
 
   const menuItems = [
-    { path: "/", label: "Chat", icon: "💬" },
+    { path: "/chat", label: "Chat", icon: "💬" },
     { path: "/documents", label: "Documents", icon: "📄" },
     { path: "/admin", label: "Admin", icon: "🔒" },
   ]
