@@ -8,11 +8,11 @@ export default function HeroSection() {
   return (
     <section 
       className="w-full flex-1 flex flex-col items-center justify-center text-center select-none font-space px-6 py-12"
-      style={{ backgroundColor: "#FCFBF4" }}
+      style={{ backgroundColor: "#0F0464" }}
     >
       <div className="max-w-4xl mx-auto flex flex-col items-center justify-center gap-6">
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight leading-tight flex flex-col sm:flex-row items-center justify-center gap-y-2 sm:gap-x-4">
-          <span className="text-[#1A041C]">Everything AIESEC,</span>
+          <span className="text-[#F5F5F0]">Everything AIESEC,</span>
           <GooeyText
             texts={ROTATING_WORDS}
             morphTime={1.2}
@@ -22,7 +22,7 @@ export default function HeroSection() {
           />
         </h1>
 
-        <p className="text-sm sm:text-base text-[#6B7280] font-normal max-w-xl mx-auto leading-relaxed">
+        <p className="text-sm sm:text-base text-[#B8B8D9] font-normal max-w-xl mx-auto leading-relaxed">
           Built to answer your AIESEC questions on the spot. No more scrolling through docs or waiting on a reply.
         </p>
         

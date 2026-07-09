@@ -4,7 +4,7 @@ import HeroSection from "@/components/HeroSection"
 
 export default function LandingPage() {
   return (
-    <div className="w-full min-h-screen bg-[#FCFBF4] flex flex-col font-space">
+    <div className="w-full min-h-screen bg-[#0F0464] flex flex-col font-space">
       {/* Minimal Top Bar */}
       <header className="w-full px-6 py-4 flex items-center justify-between select-none">
         {/* Left: Mascot Icon + Wordmark */}
@@ -12,9 +12,9 @@ export default function LandingPage() {
           <img 
             src="/mascot-avatar-256.png" 
             alt="Mascot" 
-            className="w-8 h-8 rounded-lg object-contain"
+            className="w-8 h-8 rounded-lg object-contain bg-white/10 p-0.5 border border-white/20"
           />
-          <span className="font-bold text-[#1A041C] text-sm tracking-wide">
+          <span className="font-bold text-[#F5F5F0] text-sm tracking-wide">
             AIESEC Assistant
           </span>
         </div>
@@ -23,13 +23,13 @@ export default function LandingPage() {
         <nav className="flex items-center gap-6">
           <Link 
             to="/documents" 
-            className="text-sm font-semibold text-[#1A041C] hover:underline transition-all"
+            className="text-sm font-semibold text-[#F5F5F0] hover:underline transition-all"
           >
             Documents
           </Link>
           <Link 
             to="/chat" 
-            className="text-sm font-semibold text-[#1A041C] hover:underline transition-all"
+            className="text-sm font-semibold text-[#F5F5F0] hover:underline transition-all"
           >
             Open chatbot
           </Link>
@@ -41,7 +41,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="w-full mt-auto pt-16 pb-8 px-6 flex items-center justify-center gap-2 select-none">
-        <span className="text-sm sm:text-base text-[#6B7280] font-normal leading-none">
+        <span className="text-sm sm:text-base text-[#8888B0] font-normal leading-none">
           Powered by
         </span>
         <img 
