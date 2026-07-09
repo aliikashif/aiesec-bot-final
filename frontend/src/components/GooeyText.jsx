@@ -10,6 +10,15 @@ export function GooeyText({
 }) {
   const text1Ref = React.useRef(null);
   const text2Ref = React.useRef(null);
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  React.useEffect(() => {
+    const media = window.matchMedia("(max-width: 767px)");
+    setIsMobile(media.matches);
+    const listener = (e) => setIsMobile(e.matches);
+    media.addEventListener("change", listener);
+    return () => media.removeEventListener("change", listener);
+  }, []);
 
   React.useEffect(() => {
     if (!texts || texts.length === 0) return;
@@ -21,11 +30,13 @@ export function GooeyText({
 
     const setMorph = (fraction) => {
       if (text1Ref.current && text2Ref.current) {
-        text2Ref.current.style.filter = `blur(${Math.min(8 / fraction - 8, 100)}px)`;
+        const blurAmount = isMobile ? 0 : Math.min(8 / fraction - 8, 100);
+        text2Ref.current.style.filter = blurAmount > 0 ? `blur(${blurAmount}px)` : "";
         text2Ref.current.style.opacity = `${Math.pow(fraction, 0.4) * 100}%`;
 
         fraction = 1 - fraction;
-        text1Ref.current.style.filter = `blur(${Math.min(8 / fraction - 8, 100)}px)`;
+        const blurAmount1 = isMobile ? 0 : Math.min(8 / fraction - 8, 100);
+        text1Ref.current.style.filter = blurAmount1 > 0 ? `blur(${blurAmount1}px)` : "";
         text1Ref.current.style.opacity = `${Math.pow(fraction, 0.4) * 100}%`;
       }
     };
@@ -83,7 +94,7 @@ export function GooeyText({
     return () => {
       cancelAnimationFrame(animationFrameId);
     };
-  }, [texts, morphTime, cooldownTime]);
+  }, [texts, morphTime, cooldownTime, isMobile]);
 
   return (
     <div className={cn("relative", className)}>
@@ -104,12 +115,12 @@ export function GooeyText({
 
       <div
         className="flex items-center justify-center"
-        style={{ filter: "url(#threshold)" }}
+        style={{ filter: isMobile ? "none" : "url(#threshold)" }}
       >
         <span
           ref={text1Ref}
           className={cn(
-            "absolute inline-block select-none text-center text-6xl md:text-[60pt]",
+            "absolute inline-block select-none text-center",
             "text-foreground",
             textClassName
           )}
@@ -117,7 +128,7 @@ export function GooeyText({
         <span
           ref={text2Ref}
           className={cn(
-            "absolute inline-block select-none text-center text-6xl md:text-[60pt]",
+            "absolute inline-block select-none text-center",
             "text-foreground",
             textClassName
           )}

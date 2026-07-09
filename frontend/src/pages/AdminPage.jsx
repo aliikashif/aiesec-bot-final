@@ -219,7 +219,7 @@ export default function AdminPage() {
   // 2. MAIN PANEL
   return (
     <div
-      className="h-full w-full overflow-y-auto text-[#0d0d1a] p-8 font-sans"
+      className="h-full w-full overflow-y-auto text-[#0d0d1a] p-4 sm:p-8 font-sans"
       style={{ background: "#FCFBF4" }}
     >
       <div className="max-w-5xl mx-auto flex flex-col gap-8">

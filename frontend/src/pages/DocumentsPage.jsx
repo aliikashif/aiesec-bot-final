@@ -33,7 +33,7 @@ export default function DocumentsPage() {
 
   return (
     <div
-      className="relative h-full w-full overflow-y-auto text-[#0d0d1a] p-8 font-sans"
+      className="relative h-full w-full overflow-y-auto text-[#0d0d1a] p-4 sm:p-8 font-sans"
       style={{ background: "#FCFBF4" }}
     >
       {loading ? (
