@@ -33,17 +33,17 @@ export default function SuggestedQuestions({ onSelect }) {
           <button
             key={i}
             onClick={() => onSelect(s.text)}
-            className="group text-left rounded-xl px-4 py-4 transition-all duration-200 border cursor-pointer shadow-sm"
+            className="group text-left rounded-xl px-4 py-4 transition-all duration-150 border-t border-r border-b border-l-4 cursor-pointer shadow-sm hover:scale-[1.02] hover:shadow-md"
             style={{
               background: "#ffffff",
-              borderColor: "rgba(20, 5, 134, 0.1)",
+              borderColor: "rgba(20, 5, 134, 0.1) rgba(20, 5, 134, 0.1) rgba(20, 5, 134, 0.1) #037EF3",
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.borderColor = "#63B2FB"
+              e.currentTarget.style.borderColor = "rgba(99, 178, 251, 0.3) rgba(99, 178, 251, 0.3) rgba(99, 178, 251, 0.3) #037EF3"
               e.currentTarget.style.background = "rgba(99, 178, 251, 0.05)"
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.borderColor = "rgba(20, 5, 134, 0.1)"
+              e.currentTarget.style.borderColor = "rgba(20, 5, 134, 0.1) rgba(20, 5, 134, 0.1) rgba(20, 5, 134, 0.1) #037EF3"
               e.currentTarget.style.background = "#ffffff"
             }}
           >

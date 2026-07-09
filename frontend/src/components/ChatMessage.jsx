@@ -73,10 +73,10 @@ export default function ChatMessage({ message, isLast, onFollowUpClick }) {
 
   if (isUser) {
     return (
-      <div className="flex justify-end mb-4">
+      <div className="flex justify-end mb-6">
         <div
-          className="max-w-[75%] rounded-2xl rounded-tr-sm px-4 py-3 text-sm text-white shadow-sm"
-          style={{ background: "#140586" }}
+          className="max-w-[75%] rounded-2xl rounded-tr-sm px-4 py-3 text-sm text-[#0d0d1a] border border-[#037EF3]/15 shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
+          style={{ background: "#E6F2FE" }}
         >
           {message.content}
         </div>
@@ -88,11 +88,11 @@ export default function ChatMessage({ message, isLast, onFollowUpClick }) {
   const badgeStyle = CONFIDENCE_STYLES[message.confidence] || CONFIDENCE_STYLES.Medium
 
   return (
-    <div className="flex items-start gap-3 mb-5">
+    <div className="flex items-start gap-3 mb-10">
       <BotAvatar />
       <div className="max-w-[78%] flex flex-col">
         {/* Bubble with confidence badge */}
-        <div className="relative rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-[#0d0d1a] border border-[#140586]/10 shadow-sm" style={{ background: "#ffffff" }}>
+        <div className="relative rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-[#0d0d1a] border border-[#140586]/10 shadow-[0_1px_3px_rgba(0,0,0,0.08)]" style={{ background: "#ffffff" }}>
           {/* Confidence badge — top-right of bubble */}
           {message.confidence && (
             <span
