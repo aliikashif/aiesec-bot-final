@@ -328,7 +328,6 @@ def get_followup_suggestions(request: FollowupRequest):
             model="openai/gpt-oss-20b",
             temperature=0.7,
             reasoning_effort="low",
-            include_reasoning=False,
         )
 
         content = chat_completion.choices[0].message.content.strip()

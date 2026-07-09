@@ -479,7 +479,6 @@ def get_answer(question: str, vector_store: PGVector, chat_history: list | None 
         temperature=0.1,
         max_tokens=1024,
         reasoning_effort="low",
-        include_reasoning=False,
     )
 
     # ── Step 2: Build QA prompt (system persona + context) ───────────────────
@@ -604,7 +603,6 @@ def get_answer_stream(question: str, vector_store: PGVector, chat_history: list 
         temperature=0.1,
         max_tokens=1024,
         reasoning_effort="low",
-        include_reasoning=False,
     )
 
     # ── Step 2: Build QA prompt (system persona + context) ───────────────────
