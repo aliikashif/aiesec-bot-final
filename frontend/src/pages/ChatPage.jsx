@@ -27,7 +27,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000
   function Header() {
     return (
       <header
-        className="flex items-center gap-3 px-5 py-3.5 shadow-lg flex-shrink-0 z-10"
+        className="hidden md:flex items-center gap-3 px-5 py-3.5 shadow-lg flex-shrink-0 z-10"
         style={{ background: "#0F0464" }}
       >
         {/* Bot icon */}

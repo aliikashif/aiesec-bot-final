@@ -1,3 +1,5 @@
+import { useState, useEffect } from "react"
+
 const SUGGESTIONS = [
   {
     icon: "💸",
@@ -18,6 +20,18 @@ const SUGGESTIONS = [
 ]
 
 export default function SuggestedQuestions({ onSelect }) {
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 767px)")
+    setIsMobile(media.matches)
+    const listener = (e) => setIsMobile(e.matches)
+    media.addEventListener("change", listener)
+    return () => media.removeEventListener("change", listener)
+  }, [])
+
+  const activeSuggestions = isMobile ? SUGGESTIONS.slice(0, 2) : SUGGESTIONS
+
   return (
     <div className="flex flex-col items-center justify-center flex-1 px-4 py-12 gap-8">
       {/* Hero section */}
@@ -28,8 +42,8 @@ export default function SuggestedQuestions({ onSelect }) {
       </div>
 
       {/* Suggestion cards grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl">
-        {SUGGESTIONS.map((s, i) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-xl">
+        {activeSuggestions.map((s, i) => (
           <button
             key={i}
             onClick={() => onSelect(s.text)}
