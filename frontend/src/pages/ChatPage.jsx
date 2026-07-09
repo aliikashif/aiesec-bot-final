@@ -14,7 +14,7 @@ const INITIAL_MESSAGES = [
   {
     role: "bot",
     content:
-      "To get reimbursed, submit your receipts along with a filled reimbursement form to the F&L team within 7 days of the expense.",
+      "To get reimbursed, submit your receipts along with a filled reimbursement form to the team within 7 days of the expense.",
     confidence: "High",
     sources: ["reimbursement_policy.pdf", "finance_handbook.pdf"],
   },
@@ -28,22 +28,16 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000
     return (
       <header
         className="flex items-center gap-3 px-5 py-3.5 shadow-lg flex-shrink-0 z-10"
-        style={{ background: "#63B2FB" }}
+        style={{ background: "#0F0464" }}
       >
         {/* Bot icon */}
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(20, 5, 134, 0.12)" }}>
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center border" style={{ background: "rgba(255, 255, 255, 0.12)", borderColor: "rgba(255, 255, 255, 0.15)" }}>
           <img src="/mascot-avatar-256.png" width="18" height="18" className="object-contain rounded-md" alt="Bot Avatar" />
         </div>
 
         <div>
-          <h1 className="text-[#140586] font-bold text-sm leading-tight">AIESEC F&amp;L Assistant</h1>
-          <p className="text-xs font-medium" style={{ color: "rgba(20, 5, 134, 0.8)" }}>Finance &amp; Legal RAG Chatbot</p>
-        </div>
-
-        {/* Status pill */}
-        <div className="ml-auto flex items-center gap-1.5 rounded-full px-3 py-1" style={{ background: "rgba(20, 5, 134, 0.08)" }}>
-          <span className="w-2 h-2 rounded-full bg-green-600 animate-pulse" />
-          <span className="text-xs font-semibold text-[#140586]/70">Online</span>
+          <h1 className="text-[#F5F5F0] font-bold text-sm leading-tight">AIESEC Assistant</h1>
+          <p className="text-xs font-medium text-[#B8B8D9]">AIESEC Knowledge Assistant</p>
         </div>
       </header>
     )
@@ -210,7 +204,7 @@ export default function ChatPage() {
         if (shouldBreak) break
       }
     } catch (err) {
-      console.error("[AIESEC F&L] fetch error:", err)
+      console.error("[AIESEC] fetch error:", err)
       if (botMessageAdded) {
         setMessages(prev => {
           const next = [...prev]
@@ -332,7 +326,7 @@ export default function ChatPage() {
             value={inputValue}
             onChange={e => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask about finance or legal policies…"
+            placeholder="Ask me anything…"
             disabled={isTyping}
             className="flex-1 text-sm text-[#0d0d1a] placeholder:text-slate-400 rounded-xl border h-11 px-4 focus-visible:ring-1 focus-visible:ring-[#63B2FB] focus-visible:border-[#63B2FB]"
             style={{

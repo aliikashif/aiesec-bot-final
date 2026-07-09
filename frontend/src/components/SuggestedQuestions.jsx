@@ -26,11 +26,11 @@ export default function SuggestedQuestions({ onSelect }) {
           className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center mb-4 shadow-lg"
           style={{ background: "linear-gradient(135deg, #63B2FB, #140586)" }}
         >
-          <img src="/mascot-avatar-256.png" width="32" height="32" className="object-contain" alt="AIESEC F&L Assistant mascot" />
+          <img src="/mascot-avatar-256.png" width="32" height="32" className="object-contain" alt="AIESEC Assistant mascot" />
         </div>
-        <h2 className="text-2xl font-bold text-[#140586]">AIESEC F&amp;L Assistant</h2>
+        <h2 className="text-2xl font-bold text-[#140586]">AIESEC Assistant</h2>
         <p className="text-sm font-medium" style={{ color: "rgba(20, 5, 134, 0.6)" }}>
-          Ask me anything about Finance &amp; Legal policies
+          Ask me anything about AIESEC policies
         </p>
       </div>
 
