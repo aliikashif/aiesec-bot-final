@@ -44,7 +44,12 @@ def process_document_in_background(ingest_path: str):
         print(f"[BACKGROUND_ERROR] Ingestion failed for {ingest_path}: {e}", flush=True)
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"^https?://(aiesec-bot\.vercel\.app|aiesec-[a-z0-9]+-aliikashifs-projects\.vercel\.app|localhost:(5173|5174))$",
+    allow_origins=[
+        "https://aiesec-bot.vercel.app",
+        "http://localhost:5173",
+        "http://localhost:5174",
+    ],
+    allow_origin_regex=r"^https?://aiesec-[a-z0-9\-]+-aliikashifs-projects\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
