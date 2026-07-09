@@ -1,5 +1,5 @@
 # pyrefly: ignore [missing-import]
-from fastapi import FastAPI, UploadFile, File, BackgroundTasks
+from fastapi import FastAPI, UploadFile, File, BackgroundTasks, Request, Depends
 # pyrefly: ignore [missing-import]
 from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
 from pydantic import BaseModel
@@ -8,6 +8,7 @@ import json
 import asyncio
 import os
 import psycopg2
+import secrets
 from pathlib import Path
 
 from rag import get_answer, load_vector_store, get_db_url, EmbeddingRateLimitError, COLLECTION_NAME
@@ -15,7 +16,22 @@ from fastapi.middleware.cors import CORSMiddleware
 from ingest import run_ingestion
 from generate_summaries import generate_summary_for_file
 
+# Auth & Slowapi Rate Limiting
+from auth import create_access_token, get_admin_token
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI()
+app.state.limiter = limiter
+
+@app.exception_handler(RateLimitExceeded)
+def custom_rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429,
+        content={"error": f"Too many attempts. Please try again later. Rate limit exceeded: {exc.detail}"}
+    )
 
 
 def process_document_in_background(ingest_path: str):
@@ -35,6 +51,30 @@ app.add_middleware(
 )
 
 DOCUMENTS_DIR = Path("documents")
+
+
+class LoginRequest(BaseModel):
+    password: str
+
+
+@app.post("/admin/login")
+@limiter.limit("5/15minute")
+def admin_login(request: Request, login_data: LoginRequest):
+    admin_password = os.getenv("ADMIN_PASSWORD")
+    if not admin_password:
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Server is not configured with ADMIN_PASSWORD env var."}
+        )
+    
+    if secrets.compare_digest(login_data.password, admin_password):
+        access_token = create_access_token(data={"role": "admin"})
+        return {"access_token": access_token}
+        
+    return JSONResponse(
+        status_code=401,
+        content={"error": "Unauthorized"}
+    )
 
 
 class ChatRequest(BaseModel):
@@ -184,7 +224,7 @@ def get_documents():
 
 
 @app.post("/documents/upload")
-def upload_document(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
+def upload_document(background_tasks: BackgroundTasks, file: UploadFile = File(...), admin = Depends(get_admin_token)):
     if not file.filename.lower().endswith(".pdf"):
         return JSONResponse(status_code=400, content={"error": "Only PDF files are supported."})
         
@@ -212,7 +252,7 @@ def upload_document(background_tasks: BackgroundTasks, file: UploadFile = File(.
 
 
 @app.delete("/documents/{filename}")
-def delete_document(filename: str):
+def delete_document(filename: str, admin = Depends(get_admin_token)):
     filename = os.path.basename(filename.replace("\\", "/"))
     file_path = DOCUMENTS_DIR / filename
     
@@ -248,7 +288,7 @@ def delete_document(filename: str):
 
 
 @app.post("/documents/summarize/{filename}")
-def summarize_document(filename: str):
+def summarize_document(filename: str, admin = Depends(get_admin_token)):
     filename = os.path.basename(filename.replace("\\", "/"))
     db_url = get_db_url()
     conn = None
