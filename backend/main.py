@@ -95,6 +95,9 @@ def chat_stream(request: ChatRequest):
             content={"error": str(e)}
         )
     except Exception as e:
+        import traceback
+        print(f"[ERROR] /chat/stream failed: {e}")
+        traceback.print_exc()
         return JSONResponse(
             status_code=500,
             content={"error": str(e)}
