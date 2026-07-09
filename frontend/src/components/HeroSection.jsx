@@ -18,7 +18,7 @@ export default function HeroSection() {
             morphTime={1.2}
             cooldownTime={0.4}
             className="h-14 sm:h-16 md:h-20 w-64 sm:w-72 md:w-80 flex items-center justify-center"
-            textClassName="text-[#D85A40] text-4xl sm:text-5xl md:text-6xl font-bold font-space"
+            textClassName="text-[#C1FF72] text-4xl sm:text-5xl md:text-6xl font-bold font-space"
           />
         </h1>
         
