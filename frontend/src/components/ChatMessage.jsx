@@ -1,26 +1,11 @@
 import { useState } from "react"
+import BotAvatar from "./BotAvatar"
 
 // Confidence badge styles
 const CONFIDENCE_STYLES = {
   High: { background: "#c1ff72", color: "#0d0d1a" },
   Medium: { background: "#f0c040", color: "#0d0d1a" },
   Low: { background: "#e05555", color: "#ffffff" },
-}
-
-// Bot avatar with blue ring
-function BotAvatar() {
-  return (
-    <div
-      className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ring-2 shadow-md"
-      style={{ background: "#140586", ringColor: "#63B2FB", border: "2px solid #63B2FB" }}
-    >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#63B2FB" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-        <circle cx="12" cy="16" r="1" fill="#63B2FB"/>
-      </svg>
-    </div>
-  )
 }
 
 // Sources box

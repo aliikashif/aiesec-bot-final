@@ -32,11 +32,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000
       >
         {/* Bot icon */}
         <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(20, 5, 134, 0.12)" }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#140586" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            <circle cx="12" cy="16" r="1" fill="#140586" />
-          </svg>
+          <img src="/mascot-avatar-256.png" width="18" height="18" className="object-contain rounded-md" alt="Bot Avatar" />
         </div>
 
         <div>

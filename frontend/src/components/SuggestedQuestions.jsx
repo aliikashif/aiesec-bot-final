@@ -26,10 +26,7 @@ export default function SuggestedQuestions({ onSelect }) {
           className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center mb-4 shadow-lg"
           style={{ background: "linear-gradient(135deg, #63B2FB, #140586)" }}
         >
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
-            <path d="M8 12h8M12 8v8"/>
-          </svg>
+          <img src="/mascot-avatar-256.png" width="32" height="32" className="object-contain" alt="AIESEC F&L Assistant mascot" />
         </div>
         <h2 className="text-2xl font-bold text-[#140586]">AIESEC F&amp;L Assistant</h2>
         <p className="text-sm font-medium" style={{ color: "rgba(20, 5, 134, 0.6)" }}>
