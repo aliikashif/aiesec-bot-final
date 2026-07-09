@@ -1,4 +1,5 @@
 import { useState } from "react"
+import ReactMarkdown from "react-markdown"
 import BotAvatar from "./BotAvatar"
 
 // Confidence badge styles
@@ -102,7 +103,20 @@ export default function ChatMessage({ message, isLast, onFollowUpClick }) {
               {message.confidence === "High" ? "✓ High" : message.confidence === "Medium" ? "~ Medium" : "! Low"} confidence
             </span>
           )}
-          <p className="leading-relaxed mt-1">{message.content}</p>
+          <div className="leading-relaxed mt-1 text-sm text-[#0d0d1a]">
+            <ReactMarkdown
+              components={{
+                p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                ul: ({ children }) => <ul className="list-disc pl-5 mb-2 last:mb-0 space-y-1">{children}</ul>,
+                ol: ({ children }) => <ol className="list-decimal pl-5 mb-2 last:mb-0 space-y-1">{children}</ol>,
+                li: ({ children }) => <li className="mb-0.5">{children}</li>,
+                strong: ({ children }) => <strong className="font-bold text-[#0d0d1a]">{children}</strong>,
+                a: ({ href, children }) => <a href={href} className="text-[#037EF3] hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>,
+              }}
+            >
+              {message.content}
+            </ReactMarkdown>
+          </div>
         </div>
 
         {/* Sources */}

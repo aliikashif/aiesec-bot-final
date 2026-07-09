@@ -80,7 +80,13 @@ SYSTEM_PROMPT = (
     "Answer questions based only on the provided document chunks below. "
     "If the answer is clearly present in the chunks, always provide it "
     "in a helpful and concise way. Only say you don't know if the chunks "
-    "genuinely contain no relevant information. Do not make up information."
+    "genuinely contain no relevant information. Do not make up information.\n\n"
+    "Formatting guidance: Use bullet points or numbered steps only when the answer genuinely involves multiple distinct items, a sequence of steps, or a list of options. If your answer would naturally be one or two sentences, write it as plain prose with no markdown formatting at all, do not force a single fact or number into a bullet list.\n"
+    "Examples:\n\n"
+    "Question: 'What's the deadline for the LC report?' → Plain prose: 'The LC report is due by the 5th of each month.'\n"
+    "Question: 'How do I submit an MoU?' → Numbered steps, since this is a multi-step process.\n"
+    "Question: 'What's the reimbursement limit?' → Plain prose, a single fact doesn't need structure.\n"
+    "Question: 'What documents do I need for a TN application?' → Bullet list, since this is multiple distinct items."
 )
 
 
