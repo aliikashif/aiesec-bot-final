@@ -63,7 +63,7 @@ _active_key = "primary"
 
 # ─────────────────────────────────────────────
 COLLECTION_NAME = "aiesec_documents"
-GROQ_MODEL = "llama-3.1-8b-instant"
+GROQ_MODEL = "openai/gpt-oss-20b"
 TOP_K_RESULTS = 6   # Number of relevant chunks to retrieve per query
 MAX_SUMMARY_CHUNKS = 40
 
@@ -476,6 +476,8 @@ def get_answer(question: str, vector_store: PGVector, chat_history: list | None 
         api_key=groq_api_key,
         temperature=0.1,
         max_tokens=1024,
+        reasoning_effort="low",
+        include_reasoning=False,
     )
 
     # ── Step 2: Build QA prompt (system persona + context) ───────────────────
@@ -599,6 +601,8 @@ def get_answer_stream(question: str, vector_store: PGVector, chat_history: list 
         api_key=groq_api_key,
         temperature=0.1,
         max_tokens=1024,
+        reasoning_effort="low",
+        include_reasoning=False,
     )
 
     # ── Step 2: Build QA prompt (system persona + context) ───────────────────
