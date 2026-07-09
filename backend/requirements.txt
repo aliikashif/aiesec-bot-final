@@ -31,6 +31,6 @@ python-multipart==0.0.12
 
 # Utilities & Pinning
 python-dotenv==1.1.0
-numpy>=1.26.4,<2.0.0
+numpy>=2.1.0
 pyjwt==2.10.1
 slowapi==0.1.9
