@@ -15,7 +15,7 @@ export default function LandingPage() {
             className="w-8 h-8 rounded-lg object-contain"
           />
           <span className="font-bold text-[#1A041C] text-sm tracking-wide">
-            AIESEC F&L Assistant
+            AIESEC Assistant
           </span>
         </div>
 
@@ -38,6 +38,18 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <HeroSection />
+
+      {/* Footer */}
+      <footer className="w-full mt-auto pt-16 pb-8 px-6 flex items-center justify-center gap-2 select-none">
+        <img 
+          src="/shareef-khandan-logo.png" 
+          alt="Shareef Khandan Logo" 
+          className="h-4 sm:h-5 w-auto object-contain"
+        />
+        <span className="text-sm sm:text-base text-[#6B7280] font-normal leading-none">
+          Powered by
+        </span>
+      </footer>
     </div>
   )
 }
