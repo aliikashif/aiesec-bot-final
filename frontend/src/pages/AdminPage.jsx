@@ -20,42 +20,82 @@ export default function AdminPage() {
   // Tracks loading status per document key: e.g. { "policy.pdf": "deleting" | "summarizing" }
   const [actionLoading, setActionLoading] = useState({})
 
+  const handleResponse = (res) => {
+    if (res.status === 401) {
+      sessionStorage.removeItem("admin_token")
+      setIsAuthenticated(false)
+      throw new Error("Session expired. Please log in again.")
+    }
+    if (!res.ok) {
+      return res.json().then(errData => {
+        throw new Error(errData.error || "Request failed.")
+      })
+    }
+    return res.json()
+  }
+
+  const getAuthHeaders = (extraHeaders = {}) => {
+    const token = sessionStorage.getItem("admin_token")
+    return {
+      "Authorization": token ? `Bearer ${token}` : "",
+      ...extraHeaders
+    }
+  }
+
   const handleUnlock = () => {
     setIsVerifying(true)
     setPasswordError("")
 
-    // Simulate verification delay
-    setTimeout(() => {
-      if (passwordInput === "aiesec2024") {
+    fetch(`${API_BASE_URL}/admin/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ password: passwordInput }),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}))
+          throw new Error(errData.error || "Incorrect password")
+        }
+        return res.json()
+      })
+      .then((data) => {
+        sessionStorage.setItem("admin_token", data.access_token)
         setIsAuthenticated(true)
         setIsVerifying(false)
-      } else {
-        setPasswordError("Incorrect password")
+      })
+      .catch((err) => {
+        console.error(err)
+        setPasswordError(err.message || "Incorrect password")
         setIsVerifying(false)
-      }
-    }, 1500)
+      })
   }
 
   const fetchDocuments = () => {
     setLoadingDocs(true)
     setDocsError(null)
-    fetch(`${API_BASE_URL}/documents`)
-      .then(res => {
-        if (!res.ok) {
-          throw new Error("Failed to load documents.")
-        }
-        return res.json()
-      })
+    fetch(`${API_BASE_URL}/documents`, {
+      headers: getAuthHeaders()
+    })
+      .then(handleResponse)
       .then(data => {
         setDocuments(data)
         setLoadingDocs(false)
       })
       .catch(err => {
         console.error(err)
-        setDocsError("Could not load documents. Is the backend running?")
+        setDocsError(err.message || "Could not load documents. Is the backend running?")
         setLoadingDocs(false)
       })
   }
+
+  useEffect(() => {
+    const token = sessionStorage.getItem("admin_token")
+    if (token) {
+      setIsAuthenticated(true)
+    }
+  }, [])
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -78,16 +118,10 @@ export default function AdminPage() {
 
     fetch(`${API_BASE_URL}/documents/upload`, {
       method: "POST",
+      headers: getAuthHeaders(),
       body: formData,
     })
-      .then(res => {
-        if (!res.ok) {
-          return res.json().then(errData => {
-            throw new Error(errData.error || "Upload failed.")
-          })
-        }
-        return res.json()
-      })
+      .then(handleResponse)
       .then(() => {
         setUploadStatus("success")
         setSelectedFile(null)
@@ -106,13 +140,9 @@ export default function AdminPage() {
     setActionLoading(prev => ({ ...prev, [filename]: "deleting" }))
     fetch(`${API_BASE_URL}/documents/${encodeURIComponent(filename)}`, {
       method: "DELETE",
+      headers: getAuthHeaders(),
     })
-      .then(res => {
-        if (!res.ok) {
-          throw new Error("Failed to delete document.")
-        }
-        return res.json()
-      })
+      .then(handleResponse)
       .then(() => {
         setActionLoading(prev => {
           const next = { ...prev }
@@ -136,13 +166,9 @@ export default function AdminPage() {
     setActionLoading(prev => ({ ...prev, [filename]: "summarizing" }))
     fetch(`${API_BASE_URL}/documents/summarize/${encodeURIComponent(filename)}`, {
       method: "POST",
+      headers: getAuthHeaders(),
     })
-      .then(res => {
-        if (!res.ok) {
-          throw new Error("Failed to generate summary.")
-        }
-        return res.json()
-      })
+      .then(handleResponse)
       .then(() => {
         setActionLoading(prev => {
           const next = { ...prev }
