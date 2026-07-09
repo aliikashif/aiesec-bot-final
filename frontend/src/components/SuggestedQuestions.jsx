@@ -21,16 +21,9 @@ export default function SuggestedQuestions({ onSelect }) {
   return (
     <div className="flex flex-col items-center justify-center flex-1 px-4 py-12 gap-8">
       {/* Hero section */}
-      <div className="text-center space-y-3">
-        <div
-          className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center mb-4 shadow-lg"
-          style={{ background: "linear-gradient(135deg, #63B2FB, #140586)" }}
-        >
-          <img src="/mascot-avatar-256.png" width="32" height="32" className="object-contain" alt="AIESEC Assistant mascot" />
-        </div>
-        <h2 className="text-2xl font-bold text-[#140586]">AIESEC Assistant</h2>
-        <p className="text-sm font-medium" style={{ color: "rgba(20, 5, 134, 0.6)" }}>
-          Ask me anything about AIESEC policies
+      <div className="text-center">
+        <p className="text-sm font-medium animate-fade-in" style={{ color: "rgba(20, 5, 134, 0.6)" }}>
+          What would you like to know?
         </p>
       </div>
 

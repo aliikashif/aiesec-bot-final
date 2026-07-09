@@ -37,7 +37,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000
 
         <div>
           <h1 className="text-[#F5F5F0] font-bold text-sm leading-tight">AIESEC Assistant</h1>
-          <p className="text-xs font-medium text-[#B8B8D9]">AIESEC Knowledge Assistant</p>
+          <p className="text-xs font-medium text-[#B8B8D9]">Ask me anything about AIESEC</p>
         </div>
       </header>
     )
