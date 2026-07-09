@@ -41,14 +41,14 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="w-full mt-auto pt-16 pb-8 px-6 flex items-center justify-center gap-2 select-none">
+        <span className="text-sm sm:text-base text-[#6B7280] font-normal leading-none">
+          Powered by
+        </span>
         <img 
           src="/shareef-khandan-logo.png" 
           alt="Shareef Khandan Logo" 
           className="h-4 sm:h-5 w-auto object-contain"
         />
-        <span className="text-sm sm:text-base text-[#6B7280] font-normal leading-none">
-          Powered by
-        </span>
       </footer>
     </div>
   )
