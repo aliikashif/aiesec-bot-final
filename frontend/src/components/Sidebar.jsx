@@ -130,19 +130,16 @@ export default function Sidebar() {
       {/* Sidebar Footer Credit Line */}
       {isExpanded && (
         <div className="mt-auto px-4 py-4 border-t border-white/10 select-none animate-fade-in">
-          <p className="text-[10px] text-[#B8B8D9] font-normal leading-normal">
-            Made by{" "}
-            <a
-              href="https://www.linkedin.com/in/ali-kashif0"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[#B8B8D9] hover:underline hover:text-white transition-colors font-medium"
-            >
-              Ali Kashif
-            </a>
+          <a
+            href="https://www.linkedin.com/in/ali-kashif0"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[10px] text-[#B8B8D9] hover:text-white hover:underline transition-colors font-normal leading-normal block"
+          >
+            Made by Ali Kashif
             <br />
             - TL Education, Research & Reporting, AIESEC in NUST
-          </p>
+          </a>
         </div>
       )}
     </div>
