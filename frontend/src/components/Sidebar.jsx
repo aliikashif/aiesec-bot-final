@@ -126,6 +126,25 @@ export default function Sidebar() {
           )
         })}
       </nav>
+
+      {/* Sidebar Footer Credit Line */}
+      {isExpanded && (
+        <div className="mt-auto px-4 py-4 border-t border-white/10 select-none animate-fade-in">
+          <p className="text-[10px] text-[#B8B8D9] font-normal leading-normal">
+            Made by{" "}
+            <a
+              href="https://www.linkedin.com/in/ali-kashif0"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#B8B8D9] hover:underline hover:text-white transition-colors font-medium"
+            >
+              Ali Kashif
+            </a>
+            <br />
+            - TL Education, Research & Reporting, AIESEC in NUST
+          </p>
+        </div>
+      )}
     </div>
   )
 }
