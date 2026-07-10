@@ -40,7 +40,7 @@ export default function LandingPage() {
       <HeroSection />
 
       {/* Footer */}
-      <footer className="w-full mt-auto pt-16 pb-8 px-6 flex flex-col items-center justify-center gap-5 select-none">
+      <footer className="w-full mt-auto pt-10 pb-4 px-6 flex flex-col items-center justify-center gap-2 select-none">
         <div className="flex flex-row items-center justify-center gap-2">
           <span className="text-sm sm:text-base text-[#8888B0] font-normal leading-none">
             Powered by
