@@ -40,7 +40,7 @@ export default function LandingPage() {
       <HeroSection />
 
       {/* Footer */}
-      <footer className="w-full mt-auto pt-16 pb-8 px-6 flex flex-col items-center justify-center gap-3 select-none">
+      <footer className="w-full mt-auto pt-16 pb-8 px-6 flex flex-col items-center justify-center gap-5 select-none">
         <div className="flex flex-row items-center justify-center gap-2">
           <span className="text-sm sm:text-base text-[#8888B0] font-normal leading-none">
             Powered by
@@ -53,18 +53,14 @@ export default function LandingPage() {
         </div>
         
         {/* Credit line */}
-        <p className="text-[11px] sm:text-xs text-[#8888B0] font-normal leading-none">
-          Made by{" "}
-          <a
-            href="https://www.linkedin.com/in/ali-kashif0"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[#8888B0] hover:underline hover:text-white transition-colors"
-          >
-            Ali Kashif
-          </a>{" "}
-          - TL Education, Research & Reporting, AIESEC in NUST
-        </p>
+        <a
+          href="https://www.linkedin.com/in/ali-kashif0"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[11px] sm:text-xs text-[#8888B0] hover:text-white hover:underline transition-colors font-normal leading-none"
+        >
+          Made by Ali Kashif - TL Education, Research & Reporting, AIESEC in NUST
+        </a>
       </footer>
     </div>
   )
