@@ -190,10 +190,10 @@ def get_documents():
     db_url = get_db_url()
     conn = None
     try:
-        # Scan backend/documents folder for all .pdf files
+        # Scan backend/documents folder for all .pdf files recursively
         pdf_files = []
         if DOCUMENTS_DIR.exists():
-            pdf_files = [f.name for f in DOCUMENTS_DIR.glob("*.pdf")]
+            pdf_files = list(DOCUMENTS_DIR.glob("**/*.pdf"))
         
         conn = psycopg2.connect(db_url)
         cur = conn.cursor()
@@ -204,9 +204,10 @@ def get_documents():
         print(f"[DEBUG GET /documents] Unique source strings in DB: {db_sources}", flush=True)
         
         results = []
-        for filename in pdf_files:
-            # Always normalize filenames: filename.replace("\\", "/")
-            normalized = "documents/" + filename.replace('\\', '/')
+        for f in pdf_files:
+            portfolio = f.parent.name if f.parent.name != "documents" else "uncategorized"
+            rel_path = str(f.relative_to(DOCUMENTS_DIR)).replace('\\', '/')
+            normalized = "documents/" + rel_path
             
             # Query langchain_pg_embedding joining with collection, normalizing backslashes
             cur.execute(
@@ -221,7 +222,7 @@ def get_documents():
             )
             chunks = cur.fetchone()[0] or 0
             
-            print(f"[DEBUG GET /documents] Matching filename '{filename}' (normalized: '{normalized}') -> {chunks} chunks", flush=True)
+            print(f"[DEBUG GET /documents] Matching relative path '{rel_path}' (normalized: '{normalized}') -> {chunks} chunks", flush=True)
             
             # Query document_summaries to check if a summary exists
             cur.execute(
@@ -231,9 +232,10 @@ def get_documents():
             has_summary = cur.fetchone() is not None
             
             results.append({
-                "filename": filename,
+                "filename": rel_path,
                 "chunks": chunks,
-                "has_summary": has_summary
+                "has_summary": has_summary,
+                "portfolio": portfolio
             })
             
         cur.close()
@@ -331,16 +333,19 @@ def summarize_document(filename: str, admin = Depends(get_admin_token)):
             conn.close()
 
 
-@app.get("/documents/download/{filename}")
+@app.get("/documents/download/{filename:path}")
 def download_document(filename: str):
-    filename = os.path.basename(filename.replace("\\", "/"))
-    file_path = DOCUMENTS_DIR / filename
+    clean_filename = filename.replace("\\", "/")
+    if ".." in clean_filename or clean_filename.startswith("/"):
+        return JSONResponse(status_code=400, content={"error": "Invalid path"})
+        
+    file_path = DOCUMENTS_DIR / clean_filename
     if not file_path.exists():
         return JSONResponse(status_code=404, content={"error": "File not found"})
     return FileResponse(
         path=str(file_path),
         media_type="application/pdf",
-        filename=filename
+        filename=os.path.basename(clean_filename)
     )
 
 

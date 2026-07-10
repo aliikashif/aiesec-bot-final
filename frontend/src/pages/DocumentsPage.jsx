@@ -7,6 +7,7 @@ export default function DocumentsPage() {
   const [documents, setDocuments] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [activePortfolio, setActivePortfolio] = useState(null)
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/documents`)
@@ -31,6 +32,8 @@ export default function DocumentsPage() {
     window.open(`${API_BASE_URL}/documents/download/${encodeURIComponent(filename)}`, "_blank")
   }
 
+  const filteredDocs = documents.filter(doc => doc.portfolio === activePortfolio)
+
   return (
     <div
       className="relative h-full w-full overflow-y-auto text-[#0d0d1a] p-4 sm:p-8 font-sans"
@@ -43,9 +46,11 @@ export default function DocumentsPage() {
       ) : (
         <div className="max-w-4xl mx-auto">
           <header className="mb-8">
-            <h1 className="text-3xl font-bold text-[#140586] tracking-tight">Documents</h1>
+            <h1 className="text-3xl font-bold text-[#140586] tracking-tight">
+              {activePortfolio ? (activePortfolio === "finance_legal" ? "Finance & Legal Documents" : "Business Development Documents") : "Documents"}
+            </h1>
             <p className="text-[13px] mt-1" style={{ color: "rgba(20, 5, 134, 0.6)" }}>
-              All policy documents available to the bot
+              {activePortfolio ? `All documents stored under the ${activePortfolio === "finance_legal" ? "Finance & Legal" : "Business Development"} portfolio` : "All policy documents available to the bot grouped by portfolio"}
             </p>
           </header>
 
@@ -55,46 +60,87 @@ export default function DocumentsPage() {
             </div>
           )}
 
-          {!error && documents.length === 0 && (
-            <div className="flex justify-center items-center py-20 text-center">
-              <p className="text-sm" style={{ color: "rgba(20, 5, 134, 0.6)" }}>
-                No documents uploaded yet.
-              </p>
+          {!error && activePortfolio === null && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fade-in">
+              <button
+                onClick={() => setActivePortfolio("finance_legal")}
+                className="flex items-center gap-4 p-6 rounded-2xl border border-[#140586]/10 hover:border-[#63B2FB]/40 transition-all duration-150 text-left shadow-sm hover:shadow-md hover:scale-[1.01] cursor-pointer"
+                style={{ background: "#ffffff" }}
+              >
+                <span className="text-3xl">🏛️</span>
+                <div>
+                  <h3 className="font-bold text-base text-[#140586]">Finance & Legal</h3>
+                  <p className="text-xs text-slate-500 mt-1 font-medium">
+                    {documents.filter(d => d.portfolio === "finance_legal").length} document(s)
+                  </p>
+                </div>
+              </button>
+
+              <button
+                onClick={() => setActivePortfolio("business_development")}
+                className="flex items-center gap-4 p-6 rounded-2xl border border-[#140586]/10 hover:border-[#63B2FB]/40 transition-all duration-150 text-left shadow-sm hover:shadow-md hover:scale-[1.01] cursor-pointer"
+                style={{ background: "#ffffff" }}
+              >
+                <span className="text-3xl">📈</span>
+                <div>
+                  <h3 className="font-bold text-base text-[#140586]">Business Development</h3>
+                  <p className="text-xs text-slate-500 mt-1 font-medium">
+                    {documents.filter(d => d.portfolio === "business_development").length} document(s)
+                  </p>
+                </div>
+              </button>
             </div>
           )}
 
-          {!error && documents.length > 0 && (
-            <div className="space-y-4">
-              {documents.map((doc, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between p-5 rounded-xl border border-[#140586]/10 transition-all duration-150 hover:bg-slate-50 shadow-sm"
-                  style={{ background: "#ffffff" }}
-                >
-                  <div className="flex flex-col gap-1">
-                    <span className="font-semibold text-sm text-white">{doc.filename}</span>
-                    <div className="flex items-center gap-3 text-xs" style={{ color: "#9999bb" }}>
-                      {doc.has_summary ? (
-                        <span className="font-bold text-[#16a34a]">Summary ✓</span>
-                      ) : (
-                        <span className="opacity-60">No summary</span>
-                      )}
-                    </div>
-                  </div>
+          {!error && activePortfolio !== null && (
+            <div className="animate-fade-in">
+              <button
+                onClick={() => setActivePortfolio(null)}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#140586] hover:text-[#63B2FB] transition-colors duration-150 mb-5 cursor-pointer"
+              >
+                ← Back to folders
+              </button>
 
-                  <button
-                    onClick={() => handleDownload(doc.filename)}
-                    className="px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all duration-150 cursor-pointer hover:bg-[#63B2FB] hover:text-white"
-                    style={{
-                      color: "#140586",
-                      borderColor: "rgba(20, 5, 134, 0.2)",
-                      background: "rgba(99, 178, 251, 0.1)"
-                    }}
-                  >
-                    Download
-                  </button>
+              {filteredDocs.length === 0 ? (
+                <div className="flex justify-center items-center py-20 text-center border border-dashed border-[#140586]/10 rounded-2xl">
+                  <p className="text-sm font-medium" style={{ color: "rgba(20, 5, 134, 0.6)" }}>
+                    No documents in this portfolio yet.
+                  </p>
                 </div>
-              ))}
+              ) : (
+                <div className="space-y-4">
+                  {filteredDocs.map((doc, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between p-5 rounded-xl border border-[#140586]/10 transition-all duration-150 hover:bg-slate-50 shadow-sm"
+                      style={{ background: "#ffffff" }}
+                    >
+                      <div className="flex flex-col gap-1">
+                        <span className="font-semibold text-sm text-slate-800">{doc.filename.split("/").pop().replace(/\.pdf$/i, "")}</span>
+                        <div className="flex items-center gap-3 text-xs" style={{ color: "#9999bb" }}>
+                          {doc.has_summary ? (
+                            <span className="font-bold text-[#16a34a]">Summary ✓</span>
+                          ) : (
+                            <span className="opacity-60">No summary</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleDownload(doc.filename)}
+                        className="px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all duration-150 cursor-pointer hover:bg-[#63B2FB] hover:text-white"
+                        style={{
+                          color: "#140586",
+                          borderColor: "rgba(20, 5, 134, 0.2)",
+                          background: "rgba(99, 178, 251, 0.1)"
+                        }}
+                      >
+                        Download
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
