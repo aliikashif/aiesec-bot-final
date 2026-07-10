@@ -95,6 +95,11 @@ def read_root():
     return {"message": "AIESEC F&L Bot API is running"}
 
 
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
+
+
 @app.post("/chat")
 def chat(request: ChatRequest):
     global vector_store
