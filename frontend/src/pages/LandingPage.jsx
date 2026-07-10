@@ -4,7 +4,7 @@ import HeroSection from "@/components/HeroSection"
 
 export default function LandingPage() {
   return (
-    <div className="w-full min-h-screen bg-[#0F0464] flex flex-col font-space">
+    <div className="w-full min-h-[100dvh] bg-[#0F0464] flex flex-col font-space">
       {/* Minimal Top Bar */}
       <header className="w-full px-4 sm:px-6 py-4 flex items-center justify-between select-none">
         {/* Left: Mascot Icon + Wordmark */}
@@ -40,7 +40,10 @@ export default function LandingPage() {
       <HeroSection />
 
       {/* Footer */}
-      <footer className="w-full mt-auto pt-10 pb-4 px-6 flex flex-col items-center justify-center gap-2 select-none">
+      <footer
+        className="w-full mt-auto pt-10 px-6 flex flex-col items-center justify-center gap-2 select-none"
+        style={{ paddingBottom: "calc(1.25rem + env(safe-area-inset-bottom))" }}
+      >
         <div className="flex flex-row items-center justify-center gap-2">
           <span className="text-sm sm:text-base text-[#8888B0] font-normal leading-none">
             Powered by

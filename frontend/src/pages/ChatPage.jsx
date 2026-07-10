@@ -358,7 +358,7 @@ export default function ChatPage() {
             onKeyDown={handleKeyDown}
             placeholder="Ask me anything…"
             disabled={isTyping}
-            className="flex-1 text-sm text-[#0d0d1a] placeholder:text-slate-400 rounded-xl border h-11 px-4 focus-visible:ring-1 focus-visible:ring-[#63B2FB] focus-visible:border-[#63B2FB]"
+            className="flex-1 text-base md:text-sm text-[#0d0d1a] placeholder:text-slate-400 rounded-xl border h-11 px-4 focus-visible:ring-1 focus-visible:ring-[#63B2FB] focus-visible:border-[#63B2FB]"
             style={{
               background: "#ffffff",
               borderColor: "rgba(20, 5, 134, 0.15)",

@@ -122,6 +122,20 @@ export default function AppLayout() {
             )
           })}
         </nav>
+
+        {/* Mobile Drawer Footer Credit Line */}
+        <div className="mt-auto px-4 py-4 border-t border-white/10 select-none flex-shrink-0">
+          <a
+            href="https://www.linkedin.com/in/ali-kashif0"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[10px] text-[#B8B8D9] hover:text-white hover:underline transition-colors font-normal leading-normal block"
+          >
+            Made by Ali Kashif
+            <br />
+            - TL Education, Research & Reporting, AIESEC in NUST
+          </a>
+        </div>
       </div>
 
       {/* Desktop Left: Collapsible Sidebar */}
