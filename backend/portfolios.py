@@ -23,10 +23,14 @@ PORTFOLIOS: dict[str, dict] = {
     "business_development": {
         "display_name": "Business Development",
         "scope_bullets": [
-            "[PLACEHOLDER - topic 1]",
-            "[PLACEHOLDER - topic 2]",
-            "[PLACEHOLDER - topic 3]",
-            "[PLACEHOLDER - topic 4]",
+            "Generating income and building partnerships that move the organization forward",
+            "Managing the sales process end-to-end: prospecting, lead qualification, pitching, objection handling, closing, and nurturing",
+            "Overseeing financial processes coming from partners to ensure correct execution",
+            "Contributing to and ensuring the financial sustainability of the entity",
+            "Stakeholder management and external representation with partners",
+            "Creating and delivering partner spaces and deliverables",
+            "Managing synergies with other portfolios (Power Corner, Marketing, iGTa, Alumni)",
+            "Tracking BD performance through MoS (revenue recognized/received, contract signed revenue, goal achievement) and KPIs (suspects, prospects, leads qualified, proposals sent/confirmed, contracts signed)",
         ],
     },
 }

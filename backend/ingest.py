@@ -232,6 +232,10 @@ def run_ingestion(file_paths: list = None, clear_collection: bool = False, progr
     )
     chunks = splitter.split_documents(all_documents)
 
+    # Sanitize page content once at the source to clean invalid surrogate characters
+    for chunk in chunks:
+        chunk.page_content = chunk.page_content.encode("utf-8", errors="replace").decode("utf-8")
+
     # 1. Fetch existing chunks from DB
     existing_chunks = set()
     try:
@@ -253,7 +257,7 @@ def run_ingestion(file_paths: list = None, clear_collection: bool = False, progr
         for src, doc in rows:
             if src and doc:
                 clean_src = src.replace("\\", "/")
-                existing_chunks.add((clean_src, hashlib.sha256(doc.encode("utf-8")).hexdigest()))
+                existing_chunks.add((clean_src, hashlib.sha256(doc.encode("utf-8", errors="replace")).hexdigest()))
         cur.close()
         conn.close()
         print(f"[INFO] Found {len(existing_chunks)} existing chunk(s) in collection '{COLLECTION_NAME}' inside Supabase.")
@@ -266,7 +270,7 @@ def run_ingestion(file_paths: list = None, clear_collection: bool = False, progr
     for chunk in chunks:
         src = chunk.metadata.get("source", "").replace("\\", "/")
         text = chunk.page_content
-        text_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        text_hash = hashlib.sha256(text.encode("utf-8", errors="replace")).hexdigest()
         
         if (src, text_hash) in existing_chunks:
             skipped_count += 1
