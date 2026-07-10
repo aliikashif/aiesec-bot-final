@@ -88,6 +88,11 @@ class ChatRequest(BaseModel):
     chat_history: List[List[str]] = []
     portfolio: str | None = None
 
+
+class DisplayNameRequest(BaseModel):
+    filename: str
+    display_name: str
+
 # Lazy-loaded on first request — see /chat and /chat/stream
 vector_store = None
 
@@ -185,11 +190,20 @@ def chat_stream(request: ChatRequest):
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
+DISPLAY_NAMES_FILE = Path("display_names.json")
+
+
 @app.get("/documents")
 def get_documents():
     db_url = get_db_url()
     conn = None
     try:
+        # Load display names
+        display_names = {}
+        if DISPLAY_NAMES_FILE.exists():
+            with open(DISPLAY_NAMES_FILE, "r", encoding="utf-8") as f:
+                display_names = json.load(f)
+
         # Scan backend/documents folder for all .pdf files recursively
         pdf_files = []
         if DOCUMENTS_DIR.exists():
@@ -235,7 +249,8 @@ def get_documents():
                 "filename": rel_path,
                 "chunks": chunks,
                 "has_summary": has_summary,
-                "portfolio": portfolio
+                "portfolio": portfolio,
+                "display_name": display_names.get(rel_path)
             })
             
         cur.close()
@@ -275,10 +290,13 @@ def upload_document(background_tasks: BackgroundTasks, file: UploadFile = File(.
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
-@app.delete("/documents/{filename}")
+@app.delete("/documents/{filename:path}")
 def delete_document(filename: str, admin = Depends(get_admin_token)):
-    filename = os.path.basename(filename.replace("\\", "/"))
-    file_path = DOCUMENTS_DIR / filename
+    clean_filename = filename.replace("\\", "/")
+    if ".." in clean_filename or clean_filename.startswith("/"):
+        return JSONResponse(status_code=400, content={"error": "Invalid path"})
+        
+    file_path = DOCUMENTS_DIR / clean_filename
     
     db_url = get_db_url()
     conn = None
@@ -286,7 +304,7 @@ def delete_document(filename: str, admin = Depends(get_admin_token)):
         if file_path.exists():
             file_path.unlink()
             
-        normalized = f"documents/{filename}"
+        normalized = f"documents/{clean_filename}"
         conn = psycopg2.connect(db_url)
         cur = conn.cursor()
         
@@ -303,7 +321,7 @@ def delete_document(filename: str, admin = Depends(get_admin_token)):
         conn.commit()
         cur.close()
         
-        return {"status": "deleted", "filename": filename}
+        return {"status": "deleted", "filename": clean_filename}
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
     finally:
@@ -311,21 +329,24 @@ def delete_document(filename: str, admin = Depends(get_admin_token)):
             conn.close()
 
 
-@app.post("/documents/summarize/{filename}")
+@app.post("/documents/summarize/{filename:path}")
 def summarize_document(filename: str, admin = Depends(get_admin_token)):
-    filename = os.path.basename(filename.replace("\\", "/"))
+    clean_filename = filename.replace("\\", "/")
+    if ".." in clean_filename or clean_filename.startswith("/"):
+        return JSONResponse(status_code=400, content={"error": "Invalid path"})
+        
     db_url = get_db_url()
     conn = None
     try:
-        conn = psycopg2.connect(db_url)
-        file_path = DOCUMENTS_DIR / filename
+        file_path = DOCUMENTS_DIR / clean_filename
         if not file_path.exists():
             return JSONResponse(status_code=404, content={"error": "File not found on server disk."})
             
-        normalized = f"documents/{filename}"
+        conn = psycopg2.connect(db_url)
+        normalized = f"documents/{clean_filename}"
         generate_summary_for_file(normalized, conn)
         
-        return {"status": "ok", "filename": filename}
+        return {"status": "ok", "filename": clean_filename}
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
     finally:
@@ -413,3 +434,22 @@ def get_followup_suggestions(request: FollowupRequest):
     except Exception as e:
         print(f"[ERROR] Failed to generate followups: {e}")
         return {"followups": []}
+
+
+@app.post("/documents/display-name")
+def update_display_name(request: DisplayNameRequest, admin = Depends(get_admin_token)):
+    try:
+        data = {}
+        if DISPLAY_NAMES_FILE.exists():
+            with open(DISPLAY_NAMES_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        
+        clean_filename = request.filename.replace("\\", "/")
+        data[clean_filename] = request.display_name.strip()
+        
+        with open(DISPLAY_NAMES_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+            
+        return {"status": "ok", "filename": clean_filename, "display_name": request.display_name}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
