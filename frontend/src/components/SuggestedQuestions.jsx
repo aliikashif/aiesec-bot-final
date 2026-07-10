@@ -2,20 +2,20 @@ import { useState, useEffect } from "react"
 
 const SUGGESTIONS = [
   {
-    icon: "💸",
-    text: "What is the reimbursement process?",
+    icon: "🏛️",
+    text: "What quorum is required for a national legislative meeting to proceed?",
   },
   {
     icon: "📄",
-    text: "How do I submit an MoU?",
+    text: "How to organize EFB proofs?",
   },
   {
-    icon: "🧾",
-    text: "What expenses are covered by AIESEC?",
+    icon: "💸",
+    text: "What is the maximum cash-in-hand limit for a Local Committee?",
   },
   {
     icon: "⚖️",
-    text: "What are the legal requirements for hosting an intern?",
+    text: "What are the consequences if a Local Committee fails to meet the membership criteria?",
   },
 ]
 
