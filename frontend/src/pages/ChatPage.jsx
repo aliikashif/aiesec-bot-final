@@ -240,7 +240,7 @@ export default function ChatPage() {
 
   const handleSuggestionSelect = (text) => {
     setInputValue(text)
-    inputRef.current?.focus()
+    sendMessage(text)
   }
 
   const fetchFollowups = (question, answer, sourceDocs) => {
