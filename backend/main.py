@@ -15,6 +15,7 @@ from rag import get_answer, load_vector_store, get_db_url, EmbeddingRateLimitErr
 from fastapi.middleware.cors import CORSMiddleware
 from ingest import run_ingestion
 from generate_summaries import generate_summary_for_file
+from portfolios import DEFAULT_PORTFOLIO
 
 # Auth & Slowapi Rate Limiting
 from auth import create_access_token, get_admin_token
@@ -85,6 +86,7 @@ def admin_login(request: Request, login_data: LoginRequest):
 class ChatRequest(BaseModel):
     question: str
     chat_history: List[List[str]] = []
+    portfolio: str | None = None
 
 # Lazy-loaded on first request — see /chat and /chat/stream
 vector_store = None
@@ -110,7 +112,12 @@ def chat(request: ChatRequest):
         # Convert chat_history from a list of lists into a list of tuples
         chat_history_as_tuples = [tuple(item) for item in request.chat_history]
         
-        result = get_answer(request.question, vector_store, chat_history_as_tuples)
+        result = get_answer(
+            request.question,
+            vector_store,
+            chat_history_as_tuples,
+            portfolio=request.portfolio or DEFAULT_PORTFOLIO,
+        )
         
         return {
             "answer": result.get("answer"),
@@ -138,7 +145,12 @@ def chat_stream(request: ChatRequest):
             vector_store = load_vector_store()
         
         chat_history_as_tuples = [tuple(item) for item in request.chat_history]
-        result = get_answer(request.question, vector_store, chat_history_as_tuples)
+        result = get_answer(
+            request.question,
+            vector_store,
+            chat_history_as_tuples,
+            portfolio=request.portfolio or DEFAULT_PORTFOLIO,
+        )
     except EmbeddingRateLimitError as e:
         return JSONResponse(
             status_code=429,

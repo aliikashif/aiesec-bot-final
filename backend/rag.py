@@ -35,6 +35,7 @@ from langchain.prompts import (
     ChatPromptTemplate,
     PromptTemplate,
 )
+from portfolios import PORTFOLIOS, DEFAULT_PORTFOLIO
 
 # ─────────────────────────────────────────────
 # Load environment variables from .env
@@ -74,8 +75,10 @@ MIN_DELAY = 2.0
 CONFIDENCE_HIGH = 0.65
 CONFIDENCE_MEDIUM = 0.55
 
-# System prompt that shapes the assistant's persona and behaviour
-SYSTEM_PROMPT = """You are an AIESEC Finance and Legal assistant for AIESEC in NUST. Answer questions based only on the provided document chunks below. If the answer is clearly present in the chunks, always provide it in a helpful and concise way. Only say you don't know if the chunks genuinely contain no relevant information. Do not make up information.
+# System prompt template — portfolio-specific fields are injected by
+# build_system_prompt() at call time so the same persona / tone / instructions
+# are preserved across all portfolios.
+_SYSTEM_PROMPT_TEMPLATE = """You are an AIESEC {display_name} assistant for AIESEC in NUST. Answer questions based only on the provided document chunks below. If the answer is clearly present in the chunks, always provide it in a helpful and concise way. Only say you don't know if the chunks genuinely contain no relevant information. Do not make up information.
 
 Formatting guidance: Use bullet points or numbered steps only when the answer genuinely involves multiple distinct items, a sequence of steps, or a list of options. If your answer would naturally be one or two sentences, write it as plain prose with no markdown formatting at all, do not force a single fact or number into a bullet list.
 Examples:
@@ -84,6 +87,21 @@ Question: "What's the deadline for the LC report?" → Plain prose: "The LC repo
 Question: "How do I submit an MoU?" → Numbered steps, since this is a multi-step process.
 Question: "What's the reimbursement limit?" → Plain prose, a single fact doesn't need structure.
 Question: "What documents do I need for a TN application?" → Bullet list, since this is multiple distinct items."""
+
+
+def build_system_prompt(portfolio: str = DEFAULT_PORTFOLIO) -> str:
+    """
+    Build and return the system prompt string for the given portfolio key.
+
+    Looks up ``display_name`` and ``scope_bullets`` from PORTFOLIOS and injects
+    them into the shared prompt template, keeping every other word of the persona,
+    tone, and formatting instructions identical across all portfolios.
+
+    Falls back to DEFAULT_PORTFOLIO if the key is not found in PORTFOLIOS.
+    """
+    config = PORTFOLIOS.get(portfolio) or PORTFOLIOS[DEFAULT_PORTFOLIO]
+    display_name = config["display_name"]
+    return _SYSTEM_PROMPT_TEMPLATE.format(display_name=display_name)
 
 
 def get_db_url() -> str:
@@ -320,7 +338,7 @@ def find_matching_document(query: str, available_filenames: list) -> str | None:
                 return filename
     return None
 
-def _check_shortcircuit(question: str) -> dict | None:
+def _check_shortcircuit(question: str, portfolio: str = DEFAULT_PORTFOLIO) -> dict | None:
     """
     Checks the question against the four non-RAG short-circuit cases:
     summarization intent, greeting, farewell, and name/identity.
@@ -381,15 +399,15 @@ def _check_shortcircuit(question: str) -> dict | None:
         re.IGNORECASE,
     )
     if _GREETING_PATTERN.match(question):
+        config = PORTFOLIOS.get(portfolio) or PORTFOLIOS[DEFAULT_PORTFOLIO]
+        display_name = config["display_name"]
+        bullets_str = "\n".join(f"- {b}" for b in config["scope_bullets"])
         return {
             "answer": (
-                "Hello! Welcome to the AIESEC NUST Finance & Legal Assistant.\n\n"
-                "I can help you with questions about:\n"
-                "- Financial policies and reimbursement procedures\n"
-                "- MoU and contract signing processes\n"
-                "- GDPR and legal compliance\n"
-                "- Governance and legislative procedures\n\n"
-                "Feel free to ask me anything, or try one of the suggested questions above!"
+                f"Hello! Welcome to the AIESEC NUST {display_name} Assistant.\n\n"
+                f"I can help you with questions about:\n"
+                f"{bullets_str}\n\n"
+                f"Feel free to ask me anything, or try one of the suggested questions above!"
             ),
             "sources": [],
             "source_documents": [],
@@ -422,10 +440,12 @@ def _check_shortcircuit(question: str) -> dict | None:
         re.IGNORECASE,
     )
     if _NAME_PATTERN.match(question):
+        config = PORTFOLIOS.get(portfolio) or PORTFOLIOS[DEFAULT_PORTFOLIO]
+        display_name = config["display_name"]
         return {
             "answer": (
-                "I am a nameless member of shareef khandan, here to help with "
-                "AIESEC Finance & Legal queries! \U0001f499"
+                f"I am a nameless member of shareef khandan, here to help with "
+                f"AIESEC {display_name} queries! \U0001f499"
             ),
             "sources": [],
             "source_documents": [],
@@ -436,7 +456,7 @@ def _check_shortcircuit(question: str) -> dict | None:
     return None
 
 
-def get_answer(question: str, vector_store: PGVector, chat_history: list | None = None) -> dict:
+def get_answer(question: str, vector_store: PGVector, chat_history: list | None = None, portfolio: str = None) -> dict:
     """
     Full RAG query with conversation memory.
 
@@ -453,6 +473,9 @@ def get_answer(question: str, vector_store: PGVector, chat_history: list | None 
         chat_history: List of (human_msg, ai_msg) tuples from previous turns.
                       Pass the last 6 exchanges to stay within token limits.
                       Defaults to [] if not provided.
+        portfolio:    Optional portfolio name to restrict retrieval to a specific
+                      folder (e.g. "finance_legal", "business_development").
+                      When None (default), searches all portfolios unchanged.
 
     Returns:
         A dict with keys "answer" (str), "sources" (list[str]), "farewell" (bool).
@@ -462,7 +485,7 @@ def get_answer(question: str, vector_store: PGVector, chat_history: list | None 
     if chat_history is None:
         chat_history = []
 
-    shortcircuit_result = _check_shortcircuit(question)
+    shortcircuit_result = _check_shortcircuit(question, portfolio or DEFAULT_PORTFOLIO)
     if shortcircuit_result is not None:
         return shortcircuit_result
 
@@ -483,7 +506,7 @@ def get_answer(question: str, vector_store: PGVector, chat_history: list | None 
 
     # ── Step 2: Build QA prompt (system persona + context) ───────────────────
     _system_template = (
-        SYSTEM_PROMPT + "\n\nContext: {context}"
+        build_system_prompt(portfolio or DEFAULT_PORTFOLIO) + "\n\nContext: {context}"
     )
     qa_prompt = ChatPromptTemplate.from_messages([
         SystemMessagePromptTemplate.from_template(_system_template),
@@ -516,10 +539,10 @@ def get_answer(question: str, vector_store: PGVector, chat_history: list | None 
     # ── Step 4: Retrieve chunks and similarity scores ──────────────────────
     # MMR-equivalent parameter trade-off: use similarity_search_with_relevance_scores
     # to retrieve top 6 chunks. Note: MMR diversity is traded off to gain similarity score access.
-    docs_with_scores = vector_store.similarity_search_with_relevance_scores(
-        query=standalone_query,
-        k=6
-    )
+    search_kwargs = {"query": standalone_query, "k": 6}
+    if portfolio is not None:
+        search_kwargs["filter"] = {"portfolio": portfolio}
+    docs_with_scores = vector_store.similarity_search_with_relevance_scores(**search_kwargs)
 
     source_docs = [doc for doc, score in docs_with_scores]
     scores = [score for doc, score in docs_with_scores]
@@ -562,7 +585,7 @@ def get_answer(question: str, vector_store: PGVector, chat_history: list | None 
     }
 
 
-def get_answer_stream(question: str, vector_store: PGVector, chat_history: list | None = None):
+def get_answer_stream(question: str, vector_store: PGVector, chat_history: list | None = None, portfolio: str = None):
     """
     Streaming version of get_answer(), for the /chat/stream endpoint.
 
@@ -574,12 +597,20 @@ def get_answer_stream(question: str, vector_store: PGVector, chat_history: list 
     For short-circuit cases (greeting/farewell/name/summary) there's nothing to
     stream token-by-token, so the whole answer is sent as one "token" event,
     immediately followed by "done".
+
+    Args:
+        question:     The user's natural-language question.
+        vector_store: A loaded PGVector instance (from load_vector_store()).
+        chat_history: List of (human_msg, ai_msg) tuples from previous turns.
+        portfolio:    Optional portfolio name to restrict retrieval to a specific
+                      folder (e.g. "finance_legal", "business_development").
+                      When None (default), searches all portfolios unchanged.
     """
     if chat_history is None:
         chat_history = []
 
     # ── Short-circuit cases: no real streaming needed ────────────────────────
-    shortcircuit_result = _check_shortcircuit(question)
+    shortcircuit_result = _check_shortcircuit(question, portfolio or DEFAULT_PORTFOLIO)
     if shortcircuit_result is not None:
         yield {"type": "token", "content": shortcircuit_result["answer"]}
         yield {
@@ -607,7 +638,7 @@ def get_answer_stream(question: str, vector_store: PGVector, chat_history: list 
 
     # ── Step 2: Build QA prompt (system persona + context) ───────────────────
     _system_template = (
-        SYSTEM_PROMPT + "\n\nContext: {context}"
+        build_system_prompt(portfolio or DEFAULT_PORTFOLIO) + "\n\nContext: {context}"
     )
     qa_prompt = ChatPromptTemplate.from_messages([
         SystemMessagePromptTemplate.from_template(_system_template),
@@ -638,10 +669,10 @@ def get_answer_stream(question: str, vector_store: PGVector, chat_history: list 
         standalone_query = question
 
     # ── Step 4: Retrieve chunks and similarity scores ────────────────────────
-    docs_with_scores = vector_store.similarity_search_with_relevance_scores(
-        query=standalone_query,
-        k=6
-    )
+    search_kwargs = {"query": standalone_query, "k": 6}
+    if portfolio is not None:
+        search_kwargs["filter"] = {"portfolio": portfolio}
+    docs_with_scores = vector_store.similarity_search_with_relevance_scores(**search_kwargs)
 
     source_docs = [doc for doc, score in docs_with_scores]
     scores = [score for doc, score in docs_with_scores]

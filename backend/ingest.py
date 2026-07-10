@@ -70,7 +70,10 @@ def load_pdfs(documents_dir: str) -> list:
 
     print(f"\n[INFO] Found {len(pdf_files)} PDF file(s) in '{documents_dir}':")
     for f in pdf_files:
-        print(f"     - {f.name}")
+        portfolio = f.parent.name
+        if portfolio == "documents":
+            portfolio = "uncategorized"
+        print(f"     - {f.name} ({portfolio})")
 
     all_documents = []
     for pdf_path in pdf_files:
@@ -79,8 +82,12 @@ def load_pdfs(documents_dir: str) -> list:
             loader = PyPDFLoader(str(pdf_path))
             pages = loader.load()
             file_size_kb = round(pdf_path.stat().st_size / 1024, 1)
+            portfolio = pdf_path.parent.name
+            if portfolio == "documents":
+                portfolio = "uncategorized"
             for page in pages:
                 page.metadata["file_size_kb"] = file_size_kb
+                page.metadata["portfolio"] = portfolio
             all_documents.extend(pages)
             print(f"  OK  ({len(pages)} page(s))")
         except Exception as e:
@@ -200,8 +207,12 @@ def run_ingestion(file_paths: list = None, clear_collection: bool = False, progr
             loader = PyPDFLoader(str(pdf_path))
             pages = loader.load()
             file_size_kb = round(pdf_path.stat().st_size / 1024, 1)
+            portfolio = pdf_path.parent.name
+            if portfolio == "documents":
+                portfolio = "uncategorized"
             for page in pages:
                 page.metadata["file_size_kb"] = file_size_kb
+                page.metadata["portfolio"] = portfolio
             all_documents.extend(pages)
         except Exception as e:
             print(f"[WARNING] Could not load {pdf_path.name}: {e}")
