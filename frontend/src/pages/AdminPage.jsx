@@ -12,9 +12,6 @@ export default function AdminPage() {
   const [documents, setDocuments] = useState([])
   const [loadingDocs, setLoadingDocs] = useState(false)
   const [docsError, setDocsError] = useState(null)
-  
-  const [editingFilename, setEditingFilename] = useState(null)
-  const [editValue, setEditValue] = useState("")
 
   const [selectedFile, setSelectedFile] = useState(null)
   const [uploadStatus, setUploadStatus] = useState("") // "", "uploading", "success", "error"
@@ -136,35 +133,6 @@ export default function AdminPage() {
         console.error(err)
         setUploadStatus("error")
         setUploadError(err.message || "Upload failed.")
-      })
-  }
-
-  const handleRename = (filename) => {
-    setActionLoading(prev => ({ ...prev, [filename]: "renaming" }))
-    fetch(`${API_BASE_URL}/documents/display-name`, {
-      method: "POST",
-      headers: getAuthHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ filename, display_name: editValue })
-    })
-      .then(handleResponse)
-      .then(() => {
-        setActionLoading(prev => {
-          const next = { ...prev }
-          delete next[filename]
-          return next
-        })
-        setEditingFilename(null)
-        setEditValue("")
-        fetchDocuments()
-      })
-      .catch(err => {
-        console.error(err)
-        alert(`Error renaming document: ${err.message}`)
-        setActionLoading(prev => {
-          const next = { ...prev }
-          delete next[filename]
-          return next
-        })
       })
   }
 
@@ -373,67 +341,15 @@ export default function AdminPage() {
                     const status = actionLoading[doc.filename]
                     const isDeleting = status === "deleting"
                     const isSummarizing = status === "summarizing"
-                    const isRenaming = status === "renaming"
                     const isAnyLoading = !!status
-                    const isEditing = editingFilename === doc.filename
 
                     return (
                       <tr key={idx} className="hover:bg-white/[0.01] transition-colors">
-                        <td className="py-4 px-4 font-medium text-slate-800 max-w-xs">
+                        <td className="py-4 px-4 font-medium text-white max-w-xs">
                           <div className="flex flex-col gap-0.5">
-                            {isEditing ? (
-                              <div className="flex items-center gap-2 w-full mt-1">
-                                <input
-                                  type="text"
-                                  value={editValue}
-                                  onChange={e => setEditValue(e.target.value)}
-                                  className="flex-1 px-2.5 py-1 text-xs border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#63B2FB] text-slate-800 bg-[#FCFBF4]"
-                                  placeholder="Enter custom display name..."
-                                  disabled={isRenaming}
-                                  onKeyDown={e => {
-                                    if (e.key === "Enter") handleRename(doc.filename)
-                                    if (e.key === "Escape") setEditingFilename(null)
-                                  }}
-                                  autoFocus
-                                />
-                                <button
-                                  onClick={() => handleRename(doc.filename)}
-                                  disabled={isRenaming}
-                                  className="px-2 py-1 text-xs font-semibold rounded-lg bg-green-500 hover:bg-green-600 text-white transition-colors cursor-pointer"
-                                >
-                                  {isRenaming ? "..." : "Save"}
-                                </button>
-                                <button
-                                  onClick={() => setEditingFilename(null)}
-                                  disabled={isRenaming}
-                                  className="px-2 py-1 text-xs font-semibold rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            ) : (
-                              <div className="flex items-center">
-                                <span className="truncate block font-semibold text-slate-800">
-                                  {doc.display_name || doc.filename.split("/").pop().replace(/\.pdf$/i, "")}
-                                </span>
-                                <button
-                                  onClick={() => {
-                                    setEditingFilename(doc.filename)
-                                    setEditValue(doc.display_name || doc.filename.split("/").pop().replace(/\.pdf$/i, ""))
-                                  }}
-                                  disabled={isAnyLoading}
-                                  className="ml-2 text-slate-400 hover:text-[#63B2FB] transition-colors cursor-pointer inline-flex items-center"
-                                  title="Rename display name"
-                                >
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                    <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4z" />
-                                  </svg>
-                                </button>
-                              </div>
-                            )}
+                            <span className="truncate block">{doc.filename}</span>
                             <span className="text-xs font-normal" style={{ color: "#9999bb" }}>
-                              Path: {doc.filename} · Indexed: {doc.chunks} chunks
+                              Indexed: {doc.chunks} chunks
                             </span>
                           </div>
                         </td>
