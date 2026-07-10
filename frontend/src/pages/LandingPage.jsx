@@ -57,7 +57,7 @@ export default function LandingPage() {
           href="https://www.linkedin.com/in/ali-kashif0"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-[11px] sm:text-xs text-[#8888B0] hover:text-white hover:underline transition-colors font-normal leading-none"
+          className="text-[10px] sm:text-[11px] text-[#8888B0] opacity-70 hover:opacity-100 hover:text-white hover:underline transition-all duration-150 font-normal leading-none"
         >
           Made by Ali Kashif - TL Education, Research & Reporting, AIESEC in NUST
         </a>
