@@ -42,14 +42,16 @@ export default function AppLayout() {
           <p className="text-[10px] sm:text-xs font-medium text-[#B8B8D9]">Ask me anything about AIESEC</p>
         </div>
 
-        <select
-          value={portfolio}
-          onChange={(e) => setPortfolio(e.target.value)}
-          className="ml-auto bg-white/10 text-[#F5F5F0] border border-white/20 rounded-lg px-2.5 py-1 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#63B2FB] cursor-pointer max-w-[140px] truncate"
-        >
-          <option value="finance_legal" className="bg-[#0F0464] text-[#F5F5F0]">Finance & Legal</option>
-          <option value="business_development" className="bg-[#0F0464] text-[#F5F5F0]">Business Development</option>
-        </select>
+        {location.pathname === "/chat" && (
+          <select
+            value={portfolio}
+            onChange={(e) => setPortfolio(e.target.value)}
+            className="ml-auto bg-white/10 text-[#F5F5F0] border border-white/20 rounded-lg px-2.5 py-1 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#63B2FB] cursor-pointer max-w-[140px] truncate"
+          >
+            <option value="finance_legal" className="bg-[#0F0464] text-[#F5F5F0]">Finance & Legal</option>
+            <option value="business_development" className="bg-[#0F0464] text-[#F5F5F0]">Business Development</option>
+          </select>
+        )}
       </header>
 
       {/* Mobile Drawer (Left Slide-in Panel) */}
