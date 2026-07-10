@@ -404,7 +404,7 @@ def _check_shortcircuit(question: str, portfolio: str = DEFAULT_PORTFOLIO) -> di
         bullets_str = "\n".join(f"- {b}" for b in config["scope_bullets"])
         return {
             "answer": (
-                f"Hello! Welcome to the AIESEC NUST {display_name} Assistant.\n\n"
+                f"Welcome to the AIESEC's {display_name} Assistant.\n\n"
                 f"I can help you with questions about:\n"
                 f"{bullets_str}\n\n"
                 f"Feel free to ask me anything, or try one of the suggested questions above!"

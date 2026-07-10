@@ -5,6 +5,7 @@ import Sidebar from "@/components/Sidebar"
 
 export default function AppLayout() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [portfolio, setPortfolio] = useState("finance_legal")
   const location = useLocation()
 
   // Close drawer when path changes (item is tapped)
@@ -40,6 +41,15 @@ export default function AppLayout() {
           <h1 className="text-[#F5F5F0] font-bold text-sm leading-tight">AIESEC Assistant</h1>
           <p className="text-[10px] sm:text-xs font-medium text-[#B8B8D9]">Ask me anything about AIESEC</p>
         </div>
+
+        <select
+          value={portfolio}
+          onChange={(e) => setPortfolio(e.target.value)}
+          className="ml-auto bg-white/10 text-[#F5F5F0] border border-white/20 rounded-lg px-2.5 py-1 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#63B2FB] cursor-pointer max-w-[140px] truncate"
+        >
+          <option value="finance_legal" className="bg-[#0F0464] text-[#F5F5F0]">Finance & Legal</option>
+          <option value="business_development" className="bg-[#0F0464] text-[#F5F5F0]">Business Development</option>
+        </select>
       </header>
 
       {/* Mobile Drawer (Left Slide-in Panel) */}
@@ -121,7 +131,7 @@ export default function AppLayout() {
 
       {/* Right: Main content area taking remaining width, scrollable */}
       <main className="flex-1 h-full overflow-hidden">
-        <Outlet />
+        <Outlet context={[portfolio, setPortfolio]} />
       </main>
     </div>
   )

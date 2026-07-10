@@ -33,7 +33,7 @@ export default function SuggestedQuestions({ onSelect }) {
   const activeSuggestions = isMobile ? SUGGESTIONS.slice(0, 2) : SUGGESTIONS
 
   return (
-    <div className={`flex flex-col items-center justify-center flex-1 px-4 h-full ${isMobile ? 'py-0' : 'py-12 gap-8'}`}>
+    <div className={`flex flex-col items-center justify-center flex-1 px-4 h-full ${isMobile ? 'py-0' : 'py-12 gap-4'}`}>
       {/* Hero section */}
       <div className="text-center">
         <p className="text-xl md:text-sm font-bold md:font-medium animate-fade-in" style={{ color: "rgba(20, 5, 134, 0.6)" }}>

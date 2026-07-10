@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react"
+import { useOutletContext } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import ChatMessage from "@/components/ChatMessage"
@@ -24,7 +25,7 @@ const INITIAL_MESSAGES = [
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
   // ─── Header ───────────────────────────────────────────────────────────────────
-  function Header() {
+  function Header({ portfolio, setPortfolio }) {
     return (
       <header
         className="hidden md:flex items-center gap-3 px-5 py-3.5 shadow-lg flex-shrink-0 z-10"
@@ -39,6 +40,15 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000
           <h1 className="text-[#F5F5F0] font-bold text-sm leading-tight">AIESEC Assistant</h1>
           <p className="text-xs font-medium text-[#B8B8D9]">Ask me anything about AIESEC</p>
         </div>
+
+        <select
+          value={portfolio}
+          onChange={(e) => setPortfolio(e.target.value)}
+          className="ml-auto bg-white/10 text-[#F5F5F0] border border-white/20 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#63B2FB] cursor-pointer"
+        >
+          <option value="finance_legal" className="bg-[#0F0464] text-[#F5F5F0]">Finance & Legal</option>
+          <option value="business_development" className="bg-[#0F0464] text-[#F5F5F0]">Business Development</option>
+        </select>
       </header>
     )
   }
@@ -55,11 +65,29 @@ function SendIcon() {
 
 // ─── Main ChatPage ────────────────────────────────────────────────────────────
 export default function ChatPage() {
+  const [portfolio, setPortfolio] = useOutletContext()
   const [messages, setMessages] = useState([])
   const [inputValue, setInputValue] = useState("")
   const [isTyping, setIsTyping] = useState(false)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [pendingPortfolio, setPendingPortfolio] = useState(null)
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
+  const prevPortfolioRef = useRef(portfolio)
+
+  // Clear messages when portfolio changes (with confirmation)
+  useEffect(() => {
+    if (portfolio !== prevPortfolioRef.current) {
+      if (messages.length > 0) {
+        setPendingPortfolio(portfolio)
+        setShowConfirmModal(true)
+        // Revert dropdown state back while modal is open so it matches previous
+        setPortfolio(prevPortfolioRef.current)
+      } else {
+        prevPortfolioRef.current = portfolio
+      }
+    }
+  }, [portfolio, messages, setPortfolio])
 
   // Auto-scroll to bottom whenever messages change or typing indicator appears
   useEffect(() => {
@@ -107,7 +135,7 @@ export default function ChatPage() {
       const res = await fetch(`${API_BASE_URL}/chat/stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: text, chat_history: chatHistory }),
+        body: JSON.stringify({ question: text, chat_history: chatHistory, portfolio }),
       })
 
       if (!res.ok) {
@@ -286,12 +314,14 @@ export default function ChatPage() {
       style={{ background: "#FCFBF4", fontFamily: "'Inter', sans-serif" }}
     >
       {/* 1. Header */}
-      <Header />
+      <Header portfolio={portfolio} setPortfolio={setPortfolio} />
 
       {/* 2. Chat area / Empty state */}
-      <div className="flex-1 overflow-y-auto">
+      <div className={`flex-1 overflow-y-auto ${isEmpty ? "flex flex-col items-center justify-center h-full w-full" : ""}`}>
         {isEmpty ? (
-          <SuggestedQuestions onSelect={handleSuggestionSelect} />
+          portfolio === "finance_legal" ? (
+            <SuggestedQuestions onSelect={handleSuggestionSelect} />
+          ) : null
         ) : (
           <div className="px-4 py-6 max-w-3xl mx-auto w-full">
             {messages.map((msg, i) => (
@@ -354,6 +384,51 @@ export default function ChatPage() {
           Press Enter to send · AI responses are for guidance only
         </p>
       </div>
+
+      {/* Custom Themed Confirmation Modal */}
+      {showConfirmModal && (
+        <div
+          className="fixed inset-0 bg-[#0c0448]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => {
+            setShowConfirmModal(false)
+            setPendingPortfolio(null)
+          }}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 flex flex-col gap-4 text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div>
+              <h3 className="font-bold text-lg text-[#0F0464]">Switch portfolios?</h3>
+              <p className="text-sm text-slate-500 font-medium mt-1">Your current chat will be cleared.</p>
+            </div>
+            
+            <div className="flex gap-3 mt-2">
+              <button
+                onClick={() => {
+                  setShowConfirmModal(false)
+                  setPendingPortfolio(null)
+                }}
+                className="flex-1 h-10 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  prevPortfolioRef.current = pendingPortfolio
+                  setMessages([])
+                  setPortfolio(pendingPortfolio)
+                  setShowConfirmModal(false)
+                  setPendingPortfolio(null)
+                }}
+                className="flex-1 h-10 rounded-xl bg-[#63B2FB] hover:bg-[#4ea1eb] text-white font-semibold text-sm transition-colors cursor-pointer shadow-sm shadow-[#63B2FB]/20"
+              >
+                Switch
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
