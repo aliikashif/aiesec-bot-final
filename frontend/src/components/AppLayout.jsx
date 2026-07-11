@@ -51,6 +51,7 @@ export default function AppLayout() {
             <option value="finance_legal" className="bg-[#0F0464] text-[#F5F5F0]">Finance & Legal</option>
             <option value="business_development" className="bg-[#0F0464] text-[#F5F5F0]">Business Development</option>
             <option value="exchange" className="bg-[#0F0464] text-[#F5F5F0]">Exchange</option>
+            <option value="mxp" className="bg-[#0F0464] text-[#F5F5F0]">MXP</option>
           </select>
         )}
       </header>

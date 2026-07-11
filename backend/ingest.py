@@ -234,7 +234,7 @@ def run_ingestion(file_paths: list = None, clear_collection: bool = False, progr
 
     # Sanitize page content once at the source to clean invalid surrogate characters
     for chunk in chunks:
-        chunk.page_content = chunk.page_content.encode("utf-8", errors="replace").decode("utf-8")
+        chunk.page_content = chunk.page_content.encode("utf-8", errors="replace").decode("utf-8").replace("\x00", "")
 
     # 1. Fetch existing chunks from DB
     existing_chunks = set()
@@ -318,7 +318,7 @@ def run_ingestion(file_paths: list = None, clear_collection: bool = False, progr
 
 def main():
     print("=" * 60)
-    print("  AIESEC NUST — Finance & Legal RAG Ingestion Pipeline (Supabase)")
+    print("  AIESEC NUST — Multi-Portfolio RAG Ingestion Pipeline (Supabase)")
     print("=" * 60)
 
     def cli_progress(stage, percentage):

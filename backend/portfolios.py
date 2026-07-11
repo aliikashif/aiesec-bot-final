@@ -38,6 +38,16 @@ PORTFOLIOS: dict[str, dict] = {
             "Review checkpoints and debrief processes",
         ],
     },
+    "mxp": {
+        "display_name": "MXP",
+        "scope_bullets": [
+            "Member experience standards across Job Design, Job Support, Community, Community Engagement, Environment & Well-being, and Team Practices",
+            "The MX Funnel — a member's journey from Lead through Applicant, Accepted, Approved, Realization, Finished, Completed, to Alumni",
+            "Team leader responsibilities and timelines for delivering standards",
+            "Recruitment, onboarding, transitions, and team closing processes",
+            "Code of ethics subdocument and case-solving flow",
+        ],
+    },
 }
 
 DEFAULT_PORTFOLIO = "finance_legal"
