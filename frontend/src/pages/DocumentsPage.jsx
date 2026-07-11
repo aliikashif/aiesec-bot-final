@@ -3,6 +3,15 @@ import { ShaderAnimation } from "@/components/shader-animation"
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
+const PORTFOLIO_META = {
+  finance_legal: { label: "Finance & Legal", icon: "🏛️" },
+  business_development: { label: "Business Development", icon: "📈" },
+  exchange: { label: "Exchange", icon: "✈️" },
+}
+
+const getPortfolioMeta = (key) =>
+  PORTFOLIO_META[key] || { label: key, icon: "📁" }
+
 export default function DocumentsPage() {
   const [documents, setDocuments] = useState([])
   const [loading, setLoading] = useState(true)
@@ -47,10 +56,10 @@ export default function DocumentsPage() {
         <div className="max-w-4xl mx-auto">
           <header className="mb-8">
             <h1 className="text-3xl font-bold text-[#140586] tracking-tight">
-              {activePortfolio ? (activePortfolio === "finance_legal" ? "Finance & Legal Documents" : "Business Development Documents") : "Documents"}
+              {activePortfolio ? `${getPortfolioMeta(activePortfolio).label} Documents` : "Documents"}
             </h1>
             <p className="text-[13px] mt-1" style={{ color: "rgba(20, 5, 134, 0.6)" }}>
-              {activePortfolio ? `All documents stored under the ${activePortfolio === "finance_legal" ? "Finance & Legal" : "Business Development"} portfolio` : "All policy documents available to the bot grouped by portfolio"}
+              {activePortfolio ? `All documents stored under the ${getPortfolioMeta(activePortfolio).label} portfolio` : "All policy documents available to the bot grouped by portfolio"}
             </p>
           </header>
 
@@ -62,33 +71,25 @@ export default function DocumentsPage() {
 
           {!error && activePortfolio === null && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fade-in">
-              <button
-                onClick={() => setActivePortfolio("finance_legal")}
-                className="flex items-center gap-4 p-6 rounded-2xl border border-[#140586]/10 hover:border-[#63B2FB]/40 transition-all duration-150 text-left shadow-sm hover:shadow-md hover:scale-[1.01] cursor-pointer"
-                style={{ background: "#ffffff" }}
-              >
-                <span className="text-3xl">🏛️</span>
-                <div>
-                  <h3 className="font-bold text-base text-[#140586]">Finance & Legal</h3>
-                  <p className="text-xs text-slate-500 mt-1 font-medium">
-                    {documents.filter(d => d.portfolio === "finance_legal").length} document(s)
-                  </p>
-                </div>
-              </button>
-
-              <button
-                onClick={() => setActivePortfolio("business_development")}
-                className="flex items-center gap-4 p-6 rounded-2xl border border-[#140586]/10 hover:border-[#63B2FB]/40 transition-all duration-150 text-left shadow-sm hover:shadow-md hover:scale-[1.01] cursor-pointer"
-                style={{ background: "#ffffff" }}
-              >
-                <span className="text-3xl">📈</span>
-                <div>
-                  <h3 className="font-bold text-base text-[#140586]">Business Development</h3>
-                  <p className="text-xs text-slate-500 mt-1 font-medium">
-                    {documents.filter(d => d.portfolio === "business_development").length} document(s)
-                  </p>
-                </div>
-              </button>
+              {[...new Set(documents.map(d => d.portfolio))].map((portfolioKey) => {
+                const meta = getPortfolioMeta(portfolioKey)
+                return (
+                  <button
+                    key={portfolioKey}
+                    onClick={() => setActivePortfolio(portfolioKey)}
+                    className="flex items-center gap-4 p-6 rounded-2xl border border-[#140586]/10 hover:border-[#63B2FB]/40 transition-all duration-150 text-left shadow-sm hover:shadow-md hover:scale-[1.01] cursor-pointer"
+                    style={{ background: "#ffffff" }}
+                  >
+                    <span className="text-3xl">{meta.icon}</span>
+                    <div>
+                      <h3 className="font-bold text-base text-[#140586]">{meta.label}</h3>
+                      <p className="text-xs text-slate-500 mt-1 font-medium">
+                        {documents.filter(d => d.portfolio === portfolioKey).length} document(s)
+                      </p>
+                    </div>
+                  </button>
+                )
+              })}
             </div>
           )}
 

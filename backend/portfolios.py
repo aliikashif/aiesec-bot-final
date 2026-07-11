@@ -29,6 +29,15 @@ PORTFOLIOS: dict[str, dict] = {
             "Stakeholder management and cross-portfolio synergies",
         ],
     },
+    "exchange": {
+        "display_name": "Exchange",
+        "scope_bullets": [
+            "Preparation, experience, and post-experience standards for Exchange Participants",
+            "Outgoing and incoming logistics (visa, accommodation, arrival/departure support)",
+            "Job description, working hours, duration, and opportunity benefits",
+            "Review checkpoints and debrief processes",
+        ],
+    },
 }
 
 DEFAULT_PORTFOLIO = "finance_legal"
