@@ -321,8 +321,8 @@ export default function ChatPage() {
       {/* 2. Chat area / Empty state */}
       <div className={`flex-1 overflow-y-auto ${isEmpty ? "flex flex-col items-center justify-center h-full w-full" : ""}`}>
         {isEmpty ? (
-          portfolio === "finance_legal" ? (
-            <SuggestedQuestions onSelect={handleSuggestionSelect} />
+          (portfolio === "finance_legal" || portfolio === "mxp") ? (
+            <SuggestedQuestions portfolio={portfolio} onSelect={handleSuggestionSelect} />
           ) : null
         ) : (
           <div className="px-4 py-6 max-w-3xl mx-auto w-full">

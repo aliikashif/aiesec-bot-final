@@ -7,7 +7,7 @@ const PORTFOLIO_META = {
   finance_legal: { label: "Finance & Legal", icon: "🏛️" },
   business_development: { label: "Business Development", icon: "📈" },
   exchange: { label: "Exchange", icon: "✈️" },
-  mxp: { label: "MXP", icon: "🧑🤝🧑" },
+  mxp: { label: "MXP", icon: "🤝" },
 }
 
 const getPortfolioMeta = (key) =>

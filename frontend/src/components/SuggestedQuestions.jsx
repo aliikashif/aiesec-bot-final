@@ -1,25 +1,46 @@
 import { useState, useEffect } from "react"
 
-const SUGGESTIONS = [
-  {
-    icon: "🏛️",
-    text: "What quorum is required for a national legislative meeting to proceed?",
-  },
-  {
-    icon: "📄",
-    text: "How to organize EFB proofs?",
-  },
-  {
-    icon: "💸",
-    text: "What is the maximum cash-in-hand limit for a Local Committee?",
-  },
-  {
-    icon: "⚖️",
-    text: "What are the consequences if a Local Committee fails to meet the membership criteria?",
-  },
-]
+const SUGGESTIONS_BY_PORTFOLIO = {
+  finance_legal: [
+    {
+      icon: "🏛️",
+      text: "What quorum is required for a national legislative meeting to proceed?",
+    },
+    {
+      icon: "📄",
+      text: "How to organize EFB proofs?",
+    },
+    {
+      icon: "💸",
+      text: "What is the maximum cash-in-hand limit for a Local Committee?",
+    },
+    {
+      icon: "⚖️",
+      text: "What are the consequences if a Local Committee fails to meet the membership criteria?",
+    },
+  ],
+  mxp: [
+    {
+      icon: "📋",
+      text: "What types of evidence must be submitted within 72 hours for a complaint to be accepted?",
+    },
+    {
+      icon: "🤝",
+      text: "What are the MX Standards",
+    },
+    {
+      icon: "📈",
+      text: "What are the MX KPIs?",
+    },
+    {
+      icon: "⚖️",
+      text: "Explain the case solving flow",
+      query: "Explain the case solving flow in detail",
+    },
+  ],
+}
 
-export default function SuggestedQuestions({ onSelect }) {
+export default function SuggestedQuestions({ portfolio, onSelect }) {
   const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
@@ -30,7 +51,7 @@ export default function SuggestedQuestions({ onSelect }) {
     return () => media.removeEventListener("change", listener)
   }, [])
 
-  const activeSuggestions = isMobile ? SUGGESTIONS.slice(0, 2) : SUGGESTIONS
+  const suggestions = SUGGESTIONS_BY_PORTFOLIO[portfolio] || []
 
   return (
     <div className={`flex flex-col items-center justify-center flex-1 px-4 h-full ${isMobile ? 'py-0' : 'py-12 gap-4'}`}>
@@ -44,10 +65,10 @@ export default function SuggestedQuestions({ onSelect }) {
       {/* Suggestion cards grid */}
       {!isMobile && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-xl">
-          {SUGGESTIONS.map((s, i) => (
+          {suggestions.map((s, i) => (
             <button
               key={i}
-              onClick={() => onSelect(s.text)}
+              onClick={() => onSelect(s.query || s.text)}
               className="group text-left rounded-xl px-4 py-4 transition-all duration-150 border-t border-r border-b border-l-4 cursor-pointer shadow-sm hover:scale-[1.02] hover:shadow-md"
               style={{
                 background: "#ffffff",
