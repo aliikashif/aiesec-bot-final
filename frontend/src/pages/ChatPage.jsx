@@ -100,13 +100,6 @@ export default function ChatPage() {
     const text = overrideText ? overrideText.trim() : inputValue.trim()
     if (!text || isTyping) return
 
-    // Snapshot current messages BEFORE adding the new user turn,
-    // so we can build chat_history from completed exchanges only.
-    setMessages(prev => {
-      // We need the snapshot inside the updater — capture it via closure below.
-      return prev
-    })
-
     // Build chat_history from the CURRENT messages state (completed exchanges).
     // Pair up consecutive user+bot turns, take the last 6 pairs.
     const buildHistory = (msgs) => {
@@ -120,14 +113,8 @@ export default function ChatPage() {
       return pairs.slice(-6)
     }
 
-    // Capture the current messages array synchronously before the state update.
-    // We read it directly from the ref-free closure; setMessages above is a no-op updater.
-    // Instead, use a local variable updated via functional form:
-    let chatHistory = []
-    setMessages(prev => {
-      chatHistory = buildHistory(prev)
-      return [...prev, { role: "user", content: text }]
-    })
+    const chatHistory = buildHistory(messages)
+    setMessages(prev => [...prev, { role: "user", content: text }])
 
     setInputValue("")
     setIsTyping(true)
