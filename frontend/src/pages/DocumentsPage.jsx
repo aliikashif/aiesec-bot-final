@@ -118,7 +118,12 @@ export default function DocumentsPage() {
                       style={{ background: "#ffffff" }}
                     >
                       <div className="flex flex-col gap-1">
-                        <span className="font-semibold text-sm text-slate-800">{doc.filename.split("/").pop().replace(/\.pdf$/i, "")}</span>
+                        <span
+                          onClick={() => handleDownload(doc.filename)}
+                          className="font-semibold text-sm text-slate-800 cursor-pointer hover:underline hover:text-[#63B2FB]"
+                        >
+                          {doc.filename.split("/").pop().replace(/\.pdf$/i, "")}
+                        </span>
                         <div className="flex items-center gap-3 text-xs" style={{ color: "#9999bb" }}>
                           {doc.has_summary ? (
                             <span className="font-bold text-[#16a34a]">Summary ✓</span>
