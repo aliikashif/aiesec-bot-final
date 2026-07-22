@@ -345,7 +345,8 @@ def download_document(filename: str):
     return FileResponse(
         path=str(file_path),
         media_type="application/pdf",
-        filename=os.path.basename(clean_filename)
+        filename=os.path.basename(clean_filename),
+        headers={"Content-Disposition": f'inline; filename="{os.path.basename(clean_filename)}"'}
     )
 
 
