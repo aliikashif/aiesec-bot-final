@@ -4,14 +4,14 @@ import { ShaderAnimation } from "@/components/shader-animation"
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 const PORTFOLIO_META = {
-  finance_legal: { label: "Finance & Legal", icon: "🏛️" },
-  business_development: { label: "Business Development", icon: "📈" },
-  exchange: { label: "Exchange", icon: "✈️" },
-  mxp: { label: "MXP", icon: "🤝" },
+  finance_legal: { label: "Finance & Legal", icon: "" },
+  business_development: { label: "Business Development", icon: "" },
+  exchange: { label: "Exchange", icon: "" },
+  mxp: { label: "MXP", icon: "" },
 }
 
 const getPortfolioMeta = (key) =>
-  PORTFOLIO_META[key] || { label: key, icon: "📁" }
+  PORTFOLIO_META[key] || { label: key, icon: "" }
 
 export default function DocumentsPage() {
   const [documents, setDocuments] = useState([])
@@ -81,7 +81,7 @@ export default function DocumentsPage() {
                     className="flex items-center gap-4 p-6 rounded-2xl border border-[#140586]/10 hover:border-[#63B2FB]/40 transition-all duration-150 text-left shadow-sm hover:shadow-md hover:scale-[1.01] cursor-pointer"
                     style={{ background: "#ffffff" }}
                   >
-                    <span className="text-3xl">{meta.icon}</span>
+                    {meta.icon && <span className="text-3xl">{meta.icon}</span>}
                     <div>
                       <h3 className="font-bold text-base text-[#140586]">{meta.label}</h3>
                       <p className="text-xs text-slate-500 mt-1 font-medium">

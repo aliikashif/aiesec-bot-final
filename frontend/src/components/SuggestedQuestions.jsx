@@ -3,37 +3,37 @@ import { useState, useEffect } from "react"
 const SUGGESTIONS_BY_PORTFOLIO = {
   finance_legal: [
     {
-      icon: "🏛️",
+      icon: "",
       text: "What quorum is required for a national legislative meeting to proceed?",
     },
     {
-      icon: "📄",
+      icon: "",
       text: "How to organize EFB proofs?",
     },
     {
-      icon: "💸",
+      icon: "",
       text: "What is the maximum cash-in-hand limit for a Local Committee?",
     },
     {
-      icon: "⚖️",
+      icon: "",
       text: "What are the consequences if a Local Committee fails to meet the membership criteria?",
     },
   ],
   mxp: [
     {
-      icon: "📋",
+      icon: "",
       text: "What types of evidence must be submitted within 72 hours for a complaint to be accepted?",
     },
     {
-      icon: "🤝",
+      icon: "",
       text: "What are the MX Standards",
     },
     {
-      icon: "📈",
+      icon: "",
       text: "What are the MX KPIs?",
     },
     {
-      icon: "⚖️",
+      icon: "",
       text: "Explain the case solving flow",
       query: "Explain the case solving flow in detail",
     },
@@ -83,7 +83,7 @@ export default function SuggestedQuestions({ portfolio, onSelect }) {
                 e.currentTarget.style.background = "#ffffff"
               }}
             >
-              <span className="text-xl mb-2 block">{s.icon}</span>
+              {s.icon && <span className="text-xl mb-2 block">{s.icon}</span>}
               <span className="text-sm font-semibold text-[#140586] leading-snug">{s.text}</span>
               <span className="block mt-1 text-xs font-medium" style={{ color: "rgba(20, 5, 134, 0.5)" }}>
                 Click to ask →
