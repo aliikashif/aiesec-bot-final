@@ -519,7 +519,11 @@ def get_answer(question: str, vector_store: PGVector, chat_history: list | None 
             "Given the conversation history and a follow-up question, "
             "rephrase the follow-up as a standalone question. "
             "If the follow-up is already a clear standalone question, "
-            "return it exactly as is without changing any words.\n\n"
+            "return it exactly as is without changing any words. "
+            "When rewriting the follow-up question, you must preserve any specific named entity, role, scope, or subject mentioned in the most recent prior question or answer (for example: LCP, MCP, OCP, specific document names, specific department names). Do not generalize or drop these details even if the follow-up question is vague or short.\n\n"
+            "Examples:\n"
+            'Example 1: Previous question: "What are the requirements for LCP elections?" Follow-up: "elections" → Rewritten standalone question: "What are the requirements for LCP elections?"\n'
+            'Example 2: Previous question: "How does the MCP election process work?" Follow-up: "what about the timeline" → Rewritten standalone question: "What is the timeline for the MCP election process?"\n\n'
             "Chat History: {chat_history}\n"
             "Follow-up: {question}\n"
             "Standalone question:"
@@ -533,6 +537,7 @@ def get_answer(question: str, vector_store: PGVector, chat_history: list | None 
             "chat_history": chat_history_str,
             "question": question
         }).content.strip()
+        print(f"[CONDENSE DEBUG] original='{question}' rewritten='{standalone_query}'")
     else:
         standalone_query = question
 
@@ -651,7 +656,11 @@ def get_answer_stream(question: str, vector_store: PGVector, chat_history: list 
             "Given the conversation history and a follow-up question, "
             "rephrase the follow-up as a standalone question. "
             "If the follow-up is already a clear standalone question, "
-            "return it exactly as is without changing any words.\n\n"
+            "return it exactly as is without changing any words. "
+            "When rewriting the follow-up question, you must preserve any specific named entity, role, scope, or subject mentioned in the most recent prior question or answer (for example: LCP, MCP, OCP, specific document names, specific department names). Do not generalize or drop these details even if the follow-up question is vague or short.\n\n"
+            "Examples:\n"
+            'Example 1: Previous question: "What are the requirements for LCP elections?" Follow-up: "elections" → Rewritten standalone question: "What are the requirements for LCP elections?"\n'
+            'Example 2: Previous question: "How does the MCP election process work?" Follow-up: "what about the timeline" → Rewritten standalone question: "What is the timeline for the MCP election process?"\n\n'
             "Chat History: {chat_history}\n"
             "Follow-up: {question}\n"
             "Standalone question:"
@@ -665,6 +674,7 @@ def get_answer_stream(question: str, vector_store: PGVector, chat_history: list 
             "chat_history": chat_history_str,
             "question": question
         }).content.strip()
+        print(f"[CONDENSE DEBUG] original='{question}' rewritten='{standalone_query}'")
     else:
         standalone_query = question
 
