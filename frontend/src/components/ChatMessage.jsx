@@ -9,21 +9,63 @@ const CONFIDENCE_STYLES = {
   Low: { background: "#e05555", color: "#ffffff" },
 }
 
+function formatSourceLabel(src) {
+  let rawStr = ""
+  let pageNum = null
+
+  if (typeof src === "object" && src !== null) {
+    rawStr = src.filename || src.name || src.source || ""
+    pageNum = src.page || src.page_number || null
+  } else {
+    rawStr = String(src || "")
+  }
+
+  if (!pageNum) {
+    const pageMatch = rawStr.match(/(?:#page=|\(p\.|\:)(\d+)\)?$/i)
+    if (pageMatch) {
+      pageNum = pageMatch[1]
+      rawStr = rawStr.replace(/(?:#page=|\(p\.|\:)\d+\)?$/i, "").trim()
+    }
+  }
+
+  const cleanName = rawStr
+    .replace(/\\/g, "/")
+    .split("/")
+    .pop()
+    .replace(/\.pdf$/i, "")
+    .trim()
+
+  if (pageNum) {
+    return `${cleanName} — p.${pageNum}`
+  }
+  return cleanName
+}
+
 // Sources box
 function SourcesBox({ sources }) {
   return (
     <div
-      className="mt-2 rounded-lg px-3 py-2"
+      className="mt-2 rounded-xl px-3 py-2.5"
       style={{ border: "1.5px solid rgba(20, 5, 134, 0.15)", background: "rgba(20, 5, 134, 0.03)" }}
     >
-      <p className="text-xs font-semibold mb-1" style={{ color: "#140586" }}>
+      <p className="text-xs font-semibold mb-1.5" style={{ color: "#140586" }}>
         📎 Sources
       </p>
-      {sources.map((src, i) => (
-        <p key={i} className="text-xs leading-5" style={{ color: "rgba(20, 5, 134, 0.65)" }}>
-          {src}
-        </p>
-      ))}
+      <div className="flex flex-wrap gap-1.5">
+        {sources.map((src, i) => (
+          <span
+            key={i}
+            className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full border"
+            style={{
+              background: "rgba(99, 178, 251, 0.15)",
+              color: "#140586",
+              borderColor: "rgba(99, 178, 251, 0.3)",
+            }}
+          >
+            {formatSourceLabel(src)}
+          </span>
+        ))}
+      </div>
     </div>
   )
 }
