@@ -1,12 +1,27 @@
 import { useState, useEffect } from "react"
-import { Outlet, Link, useLocation } from "react-router-dom"
+import { Outlet, Link, useLocation, Navigate } from "react-router-dom"
 import { Menu, X, Home } from "lucide-react"
 import Sidebar from "@/components/Sidebar"
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 export default function AppLayout() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [portfolio, setPortfolio] = useState("finance_legal")
+  const [adminEnabled, setAdminEnabled] = useState(false)
+  const [adminLoading, setAdminLoading] = useState(true)
   const location = useLocation()
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/admin/enabled`)
+      .then(res => res.json())
+      .then(data => setAdminEnabled(!!data.enabled))
+      .catch(err => {
+        console.error("Failed to check admin panel status:", err)
+        setAdminEnabled(false)
+      })
+      .finally(() => setAdminLoading(false))
+  }, [])
 
   // Close drawer when path changes (item is tapped)
   useEffect(() => {
@@ -16,8 +31,17 @@ export default function AppLayout() {
   const menuItems = [
     { path: "/chat", label: "Chat", icon: "💬" },
     { path: "/documents", label: "Documents", icon: "📄" },
-    { path: "/admin", label: "Admin", icon: "🔒" },
+    ...(adminEnabled ? [{ path: "/admin", label: "Admin", icon: "🔒" }] : []),
   ]
+
+  if (location.pathname === "/admin") {
+    if (adminLoading) {
+      return null
+    }
+    if (!adminEnabled) {
+      return <Navigate to="/chat" replace />
+    }
+  }
 
   return (
     <div className="flex flex-col md:flex-row h-screen w-screen bg-[#FCFBF4] overflow-hidden text-[#0d0d1a] font-sans">
@@ -144,7 +168,7 @@ export default function AppLayout() {
 
       {/* Desktop Left: Collapsible Sidebar */}
       <div className="hidden md:block">
-        <Sidebar />
+        <Sidebar adminEnabled={adminEnabled} />
       </div>
 
       {/* Right: Main content area taking remaining width, scrollable */}

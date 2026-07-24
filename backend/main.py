@@ -102,6 +102,12 @@ def health_check():
     return {"status": "ok"}
 
 
+@app.get("/admin/enabled")
+def get_admin_enabled():
+    val = os.getenv("ADMIN_PANEL_ENABLED", "false")
+    return {"enabled": val.strip().lower() == "true"}
+
+
 @app.post("/chat")
 def chat(request: ChatRequest):
     global vector_store

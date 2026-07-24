@@ -2,7 +2,7 @@ import { useState } from "react"
 import { useNavigate, useLocation, Link } from "react-router-dom"
 import { Home } from "lucide-react"
 
-export default function Sidebar() {
+export default function Sidebar({ adminEnabled }) {
   const [isExpanded, setIsExpanded] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
@@ -10,7 +10,7 @@ export default function Sidebar() {
   const menuItems = [
     { path: "/chat", label: "Chat", icon: "💬" },
     { path: "/documents", label: "Documents", icon: "📄" },
-    { path: "/admin", label: "Admin", icon: "🔒" },
+    ...(adminEnabled ? [{ path: "/admin", label: "Admin", icon: "🔒" }] : []),
   ]
 
   return (
