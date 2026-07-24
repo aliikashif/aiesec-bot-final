@@ -67,7 +67,7 @@ function SendIcon() {
 
 // ─── Main ChatPage ────────────────────────────────────────────────────────────
 export default function ChatPage() {
-  const [portfolio, setPortfolio] = useOutletContext()
+  const [portfolio, setPortfolio, allDocuments = []] = useOutletContext()
   const [messages, setMessages] = useState([])
   const [inputValue, setInputValue] = useState("")
   const [isTyping, setIsTyping] = useState(false)
@@ -319,6 +319,7 @@ export default function ChatPage() {
                 message={msg}
                 isLast={i === messages.length - 1}
                 onFollowUpClick={handleFollowUpClick}
+                allDocuments={allDocuments}
               />
             ))}
 

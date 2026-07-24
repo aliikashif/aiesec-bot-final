@@ -10,6 +10,7 @@ export default function AppLayout() {
   const [portfolio, setPortfolio] = useState("finance_legal")
   const [adminEnabled, setAdminEnabled] = useState(false)
   const [adminLoading, setAdminLoading] = useState(true)
+  const [allDocuments, setAllDocuments] = useState([])
   const location = useLocation()
 
   useEffect(() => {
@@ -21,6 +22,22 @@ export default function AppLayout() {
         setAdminEnabled(false)
       })
       .finally(() => setAdminLoading(false))
+  }, [])
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/documents`)
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch documents")
+        return res.json()
+      })
+      .then(data => {
+        if (Array.isArray(data)) {
+          setAllDocuments(data)
+        }
+      })
+      .catch(err => {
+        console.error("Failed to fetch documents list:", err)
+      })
   }, [])
 
   // Close drawer when path changes (item is tapped)
@@ -173,7 +190,7 @@ export default function AppLayout() {
 
       {/* Right: Main content area taking remaining width, scrollable */}
       <main className="flex-1 h-full overflow-hidden">
-        <Outlet context={[portfolio, setPortfolio]} />
+        <Outlet context={[portfolio, setPortfolio, allDocuments]} />
       </main>
     </div>
   )

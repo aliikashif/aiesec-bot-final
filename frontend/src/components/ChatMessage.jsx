@@ -9,6 +9,21 @@ const CONFIDENCE_STYLES = {
   Low: { background: "#e05555", color: "#ffffff" },
 }
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+
+function getCleanBaseName(str) {
+  if (!str) return ""
+  const raw = typeof str === "object" ? (str.filename || str.name || str.source || "") : String(str)
+  return raw
+    .replace(/\\/g, "/")
+    .split("/")
+    .pop()
+    .replace(/\.pdf$/i, "")
+    .replace(/(?:#page=|\(p\.|\:)\d+\)?$/i, "")
+    .trim()
+    .toLowerCase()
+}
+
 function formatSourceLabel(src) {
   let rawStr = ""
   let pageNum = null
@@ -42,7 +57,7 @@ function formatSourceLabel(src) {
 }
 
 // Sources box
-function SourcesBox({ sources }) {
+function SourcesBox({ sources, allDocuments = [] }) {
   return (
     <div
       className="mt-2 rounded-xl px-3 py-2.5"
@@ -52,19 +67,37 @@ function SourcesBox({ sources }) {
         📎 Sources
       </p>
       <div className="flex flex-wrap gap-1.5">
-        {sources.map((src, i) => (
-          <span
-            key={i}
-            className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full border"
-            style={{
-              background: "rgba(99, 178, 251, 0.15)",
-              color: "#140586",
-              borderColor: "rgba(99, 178, 251, 0.3)",
-            }}
-          >
-            {formatSourceLabel(src)}
-          </span>
-        ))}
+        {sources.map((src, i) => {
+          const targetName = getCleanBaseName(src)
+          const matchedDoc = (allDocuments || []).find(
+            doc => getCleanBaseName(doc.filename) === targetName
+          )
+
+          const isClickable = Boolean(matchedDoc && matchedDoc.filename)
+
+          const handleClick = () => {
+            if (isClickable) {
+              window.open(
+                `${API_BASE_URL}/documents/download/${encodeURIComponent(matchedDoc.filename)}`,
+                "_blank"
+              )
+            }
+          }
+
+          return (
+            <span
+              key={i}
+              onClick={isClickable ? handleClick : undefined}
+              className={`inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full border transition-all duration-150 ${
+                isClickable
+                  ? "cursor-pointer bg-[#63B2FB]/15 text-[#140586] border-[#63B2FB]/30 hover:bg-[#63B2FB]/30 hover:underline shadow-sm"
+                  : "bg-[#63B2FB]/15 text-[#140586] border-[#63B2FB]/30 opacity-80 select-none"
+              }`}
+            >
+              {formatSourceLabel(src)}
+            </span>
+          )
+        })}
       </div>
     </div>
   )
@@ -111,7 +144,7 @@ function FeedbackButtons() {
   )
 }
 
-export default function ChatMessage({ message, isLast, onFollowUpClick }) {
+export default function ChatMessage({ message, isLast, onFollowUpClick, allDocuments = [] }) {
   const isUser = message.role === "user"
 
   if (isUser) {
@@ -163,7 +196,7 @@ export default function ChatMessage({ message, isLast, onFollowUpClick }) {
 
         {/* Sources */}
         {message.sources && message.sources.length > 0 && (
-          <SourcesBox sources={message.sources} />
+          <SourcesBox sources={message.sources} allDocuments={allDocuments} />
         )}
 
         {/* Follow-up suggestions */}
