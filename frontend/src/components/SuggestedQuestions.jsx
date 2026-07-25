@@ -19,6 +19,42 @@ const SUGGESTIONS_BY_PORTFOLIO = {
       text: "What are the consequences if a Local Committee fails to meet the membership criteria?",
     },
   ],
+  business_development: [
+    {
+      icon: "",
+      text: "What criteria must an organization meet to qualify for a Business Development Partnership with AIESEC?",
+    },
+    {
+      icon: "",
+      text: "What is the role of the Business Development portfolio in AIESEC?",
+    },
+    {
+      icon: "",
+      text: "What criteria does AIESEC use when selecting partners for its CSR initiatives?",
+    },
+    {
+      icon: "",
+      text: "What unique added value does AIESEC provide to companies?",
+    },
+  ],
+  exchange: [
+    {
+      icon: "",
+      text: "What are the 18 Quality Standards?",
+    },
+    {
+      icon: "",
+      text: "What happens if fewer than 16 standards are met?",
+    },
+    {
+      icon: "",
+      text: "What happens during the debrief with AIESEC after the exchange ends?",
+    },
+    {
+      icon: "",
+      text: "What specific information should I include in a detailed buyer persona?",
+    },
+  ],
   mxp: [
     {
       icon: "",
