@@ -109,20 +109,21 @@ def get_admin_enabled():
 
 
 @app.post("/chat")
-def chat(request: ChatRequest):
+@limiter.limit("10/minute")
+def chat(request: Request, body: ChatRequest):
     global vector_store
     try:
         if vector_store is None:
             vector_store = load_vector_store()
         
         # Convert chat_history from a list of lists into a list of tuples
-        chat_history_as_tuples = [tuple(item) for item in request.chat_history]
+        chat_history_as_tuples = [tuple(item) for item in body.chat_history]
         
         result = get_answer(
-            request.question,
+            body.question,
             vector_store,
             chat_history_as_tuples,
-            portfolio=request.portfolio or DEFAULT_PORTFOLIO,
+            portfolio=body.portfolio or DEFAULT_PORTFOLIO,
         )
         
         return {
@@ -144,18 +145,19 @@ def chat(request: ChatRequest):
 
 
 @app.post("/chat/stream")
-def chat_stream(request: ChatRequest):
+@limiter.limit("10/minute")
+def chat_stream(request: Request, body: ChatRequest):
     global vector_store
     try:
         if vector_store is None:
             vector_store = load_vector_store()
         
-        chat_history_as_tuples = [tuple(item) for item in request.chat_history]
+        chat_history_as_tuples = [tuple(item) for item in body.chat_history]
         result = get_answer(
-            request.question,
+            body.question,
             vector_store,
             chat_history_as_tuples,
-            portfolio=request.portfolio or DEFAULT_PORTFOLIO,
+            portfolio=body.portfolio or DEFAULT_PORTFOLIO,
         )
     except EmbeddingRateLimitError as e:
         return JSONResponse(
@@ -363,8 +365,9 @@ class FollowupRequest(BaseModel):
 
 
 @app.post("/followups")
-def get_followup_suggestions(request: FollowupRequest):
-    if not request.source_documents:
+@limiter.limit("10/minute")
+def get_followup_suggestions(request: Request, body: FollowupRequest):
+    if not body.source_documents:
         return {"followups": []}
 
     groq_api_key = os.getenv("GROQ_API_KEY")
@@ -377,13 +380,13 @@ def get_followup_suggestions(request: FollowupRequest):
         groq_client = Groq(api_key=groq_api_key)
 
         # Build prompt using source document texts
-        docs_text = "\n\n".join([doc.get("page_content", "") for doc in request.source_documents if isinstance(doc, dict)])
+        docs_text = "\n\n".join([doc.get("page_content", "") for doc in body.source_documents if isinstance(doc, dict)])
 
         prompt = (
             "You are generating exactly 3 follow-up questions that a user might want to ask next after receiving an answer to their previous question.\n"
             "Here is the context and history:\n"
-            f"User Question: {request.question}\n"
-            f"Bot Answer: {request.answer}\n\n"
+            f"User Question: {body.question}\n"
+            f"Bot Answer: {body.answer}\n\n"
             f"Source Document Chunks:\n{docs_text}\n\n"
             "Instructions:\n"
             "1. Only suggest follow-up questions that can be answered using the document chunks provided above.\n"
