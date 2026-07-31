@@ -104,24 +104,43 @@ function SourcesBox({ sources, allDocuments = [] }) {
 }
 
 // Feedback buttons (thumbs up / down)
-function FeedbackButtons() {
+function FeedbackButtons({ question, answer }) {
   const [voted, setVoted] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
 
-  const handleVote = (type) => {
-    setVoted(type)
-    console.log("Feedback:", type)
+  const handleVote = async (type) => {
+    if (voted !== null || submitting) return
+    setSubmitting(true)
+    try {
+      await fetch(`${API_BASE_URL}/feedback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: question || "",
+          answer: answer || "",
+          feedback: type,
+        }),
+      })
+    } catch (err) {
+      console.error("[AIESEC] Failed to submit feedback:", err)
+    } finally {
+      setVoted(type)
+      setSubmitting(false)
+    }
   }
 
   return (
     <div className="flex gap-2 mt-2">
       <button
         onClick={() => handleVote("up")}
+        disabled={voted !== null || submitting}
         title="Helpful"
         className="text-xs rounded-md px-2 py-1 transition-all duration-150 flex items-center gap-1 cursor-pointer"
         style={{
           background: voted === "up" ? "rgba(99, 178, 251, 0.15)" : "rgba(20, 5, 134, 0.05)",
           color: voted === "up" ? "#140586" : "rgba(20, 5, 134, 0.6)",
           border: voted === "up" ? "1px solid #63B2FB" : "1px solid rgba(20, 5, 134, 0.1)",
+          opacity: voted !== null && voted !== "up" ? 0.4 : 1,
         }}
       >
         <span>👍</span>
@@ -129,12 +148,14 @@ function FeedbackButtons() {
       </button>
       <button
         onClick={() => handleVote("down")}
+        disabled={voted !== null || submitting}
         title="Not helpful"
         className="text-xs rounded-md px-2 py-1 transition-all duration-150 flex items-center gap-1 cursor-pointer"
         style={{
           background: voted === "down" ? "rgba(224,85,85,0.15)" : "rgba(20, 5, 134, 0.05)",
           color: voted === "down" ? "#e05555" : "rgba(20, 5, 134, 0.6)",
           border: voted === "down" ? "1px solid #e05555" : "1px solid rgba(20, 5, 134, 0.1)",
+          opacity: voted !== null && voted !== "down" ? 0.4 : 1,
         }}
       >
         <span>👎</span>
@@ -144,7 +165,7 @@ function FeedbackButtons() {
   )
 }
 
-export default function ChatMessage({ message, isLast, onFollowUpClick, allDocuments = [] }) {
+export default function ChatMessage({ message, isLast, onFollowUpClick, allDocuments = [], question = "" }) {
   const isUser = message.role === "user"
 
   if (isUser) {
@@ -215,7 +236,7 @@ export default function ChatMessage({ message, isLast, onFollowUpClick, allDocum
         )}
 
         {/* Feedback */}
-        <FeedbackButtons />
+        <FeedbackButtons question={question} answer={message.content} />
       </div>
     </div>
   )

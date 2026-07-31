@@ -318,6 +318,7 @@ export default function ChatPage() {
                 isLast={i === messages.length - 1}
                 onFollowUpClick={handleFollowUpClick}
                 allDocuments={allDocuments}
+                question={msg.role === "bot" && i > 0 && messages[i - 1]?.role === "user" ? messages[i - 1].content : ""}
               />
             ))}
 

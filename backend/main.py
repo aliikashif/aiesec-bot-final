@@ -358,6 +358,38 @@ def download_document(filename: str):
     )
 
 
+class FeedbackRequest(BaseModel):
+    question: str
+    answer: str
+    feedback: str  # "up" or "down"
+
+
+@app.post("/feedback")
+@limiter.limit("30/minute")
+def submit_feedback(request: Request, body: FeedbackRequest):
+    db_url = get_db_url()
+    conn = None
+    try:
+        conn = psycopg2.connect(db_url)
+        cur = conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO bot_feedback (timestamp, question, answer, feedback)
+            VALUES (NOW(), %s, %s, %s)
+            """,
+            (body.question, body.answer, body.feedback),
+        )
+        conn.commit()
+        cur.close()
+        return {"status": "ok"}
+    except Exception as e:
+        print(f"[ERROR] /feedback insert failed: {e}", flush=True)
+        return JSONResponse(status_code=500, content={"error": str(e)})
+    finally:
+        if conn:
+            conn.close()
+
+
 class FollowupRequest(BaseModel):
     question: str
     answer: str
