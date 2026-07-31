@@ -78,6 +78,7 @@ const SUGGESTIONS_BY_PORTFOLIO = {
 
 export default function SuggestedQuestions({ portfolio, onSelect }) {
   const [isMobile, setIsMobile] = useState(false)
+  const [expanded, setExpanded] = useState(false)
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 767px)")
@@ -126,6 +127,76 @@ export default function SuggestedQuestions({ portfolio, onSelect }) {
               </span>
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Mobile-only collapsible "Try asking" toggle */}
+      {isMobile && (
+        <div className="w-full max-w-xl mt-3">
+          {/* Toggle pill */}
+          <button
+            onClick={() => setExpanded(prev => !prev)}
+            style={{
+              width: "100%",
+              background: "transparent",
+              border: "1px solid rgba(20, 5, 134, 0.15)",
+              borderRadius: "20px",
+              padding: "10px 16px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              cursor: "pointer",
+            }}
+          >
+            <span style={{ fontSize: "13px", fontWeight: 600, color: "rgba(20, 5, 134, 0.55)" }}>
+              Try asking
+            </span>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="rgba(20, 5, 134, 0.55)"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              {expanded
+                ? <polyline points="18 15 12 9 6 15" />
+                : <polyline points="6 9 12 15 18 9" />
+              }
+            </svg>
+          </button>
+
+          {/* Expanded suggestion list */}
+          {expanded && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "10px" }}>
+              {suggestions.map((s, i) => (
+                <button
+                  key={i}
+                  onClick={() => onSelect(s.query || s.text)}
+                  style={{
+                    background: "#ffffff",
+                    borderTop: "1px solid rgba(20, 5, 134, 0.1)",
+                    borderRight: "1px solid rgba(20, 5, 134, 0.1)",
+                    borderBottom: "1px solid rgba(20, 5, 134, 0.1)",
+                    borderLeft: "4px solid #037EF3",
+                    borderRadius: "10px",
+                    padding: "10px 14px",
+                    textAlign: "left",
+                    cursor: "pointer",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    color: "#140586",
+                    lineHeight: "1.4",
+                    width: "100%",
+                  }}
+                >
+                  {s.text}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
