@@ -43,6 +43,29 @@ def process_document_in_background(ingest_path: str):
         print(f"[BACKGROUND] Ingestion completed successfully for: {ingest_path}", flush=True)
     except Exception as e:
         print(f"[BACKGROUND_ERROR] Ingestion failed for {ingest_path}: {e}", flush=True)
+
+
+def log_chat_to_db(portfolio: str, question: str, answer: str, ip_address: str):
+    """Inserts one row into chat_logs. Runs in the background — never raises."""
+    conn = None
+    try:
+        db_url = get_db_url()
+        conn = psycopg2.connect(db_url)
+        cur = conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO chat_logs (portfolio, question, answer, ip_address)
+            VALUES (%s, %s, %s, %s)
+            """,
+            (portfolio, question, answer, ip_address),
+        )
+        conn.commit()
+        cur.close()
+    except Exception as e:
+        print(f"[CHAT_LOG_ERROR] Failed to log chat: {e}", flush=True)
+    finally:
+        if conn:
+            conn.close()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -110,7 +133,7 @@ def get_admin_enabled():
 
 @app.post("/chat")
 @limiter.limit("10/minute")
-def chat(request: Request, body: ChatRequest):
+def chat(request: Request, body: ChatRequest, background_tasks: BackgroundTasks):
     global vector_store
     try:
         if vector_store is None:
@@ -125,7 +148,20 @@ def chat(request: Request, body: ChatRequest):
             chat_history_as_tuples,
             portfolio=body.portfolio or DEFAULT_PORTFOLIO,
         )
-        
+
+        # Extract visitor IP (X-Forwarded-For first, since we're behind a proxy)
+        forwarded_for = request.headers.get("X-Forwarded-For")
+        ip_address = forwarded_for.split(",")[0].strip() if forwarded_for else (request.client.host if request.client else "unknown")
+
+        # Log the exchange in the background — must never block or affect the response
+        background_tasks.add_task(
+            log_chat_to_db,
+            body.portfolio or DEFAULT_PORTFOLIO,
+            body.question,
+            result.get("answer") or "",
+            ip_address,
+        )
+
         return {
             "answer": result.get("answer"),
             "confidence": result.get("confidence"),
@@ -146,7 +182,7 @@ def chat(request: Request, body: ChatRequest):
 
 @app.post("/chat/stream")
 @limiter.limit("10/minute")
-def chat_stream(request: Request, body: ChatRequest):
+def chat_stream(request: Request, body: ChatRequest, background_tasks: BackgroundTasks):
     global vector_store
     try:
         if vector_store is None:
@@ -172,6 +208,19 @@ def chat_stream(request: Request, body: ChatRequest):
             status_code=500,
             content={"error": str(e)}
         )
+
+    # Extract visitor IP before entering the generator
+    forwarded_for = request.headers.get("X-Forwarded-For")
+    ip_address = forwarded_for.split(",")[0].strip() if forwarded_for else (request.client.host if request.client else "unknown")
+
+    # Schedule the DB log in the background — fires after the response is fully sent
+    background_tasks.add_task(
+        log_chat_to_db,
+        body.portfolio or DEFAULT_PORTFOLIO,
+        body.question,
+        result.get("answer") or "",
+        ip_address,
+    )
 
     async def event_stream():
         try:
