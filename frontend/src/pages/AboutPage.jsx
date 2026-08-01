@@ -11,14 +11,25 @@ export default function AboutPage() {
   const constraintsRef = useRef(null)
 
   // Track x velocity so we can derive tilt rotation while dragging
-  const dragX   = useMotionValue(0)
-  const velX    = useVelocity(dragX)
-  // Map horizontal velocity (±1 200 px/s) to rotation (±22 deg), clamped
-  const rotate  = useTransform(velX, [-1200, 0, 1200], [-22, 0, 22], { clamp: true })
+  const dragX  = useMotionValue(0)
+  const dragY  = useMotionValue(0)
+  const velX   = useVelocity(dragX)
+  // Map horizontal velocity (±400 px/s → ±38 deg) — narrower range so normal
+  // drag speeds produce clearly visible tilt; capped so it never spins wildly
+  const rotate = useTransform(velX, [-400, 0, 400], [-38, 0, 38], { clamp: true })
 
   const handleDragEnd = () => {
-    // Spring the rotation back to upright after release
-    animate(rotate, 0, { type: "spring", stiffness: 120, damping: 14 })
+    // 1. Animate Y back to 0 (= bottom of viewport) with a weighted gravity spring
+    //    Low stiffness = visible acceleration on the way down; moderate damping +
+    //    a slight negative overshoot gives the soft landing bounce feel.
+    animate(dragY, 0, {
+      type: "spring",
+      stiffness: 90,
+      damping: 12,
+      mass: 1.2,
+    })
+    // 2. Level the rotation back to upright in sync with the fall
+    animate(rotate, 0, { type: "spring", stiffness: 100, damping: 16 })
   }
 
   return (
@@ -114,15 +125,13 @@ export default function AboutPage() {
         drag
         dragConstraints={constraintsRef}
         dragElastic={0.08}
-        dragTransition={{
-          power: 0.3,
-          timeConstant: 220,
-          bounceStiffness: 380,
-          bounceDamping: 22,
-        }}
         onDragEnd={handleDragEnd}
+        // Stop FM's built-in inertia immediately on release so our gravity
+        // spring (in onDragEnd) takes over cleanly without competition
+        dragTransition={{ power: 0, timeConstant: 0 }}
         style={{
           x: dragX,
+          y: dragY,
           rotate,
           position: "fixed",
           bottom: 0,
