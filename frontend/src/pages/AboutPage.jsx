@@ -1,7 +1,22 @@
 import * as React from "react"
+import { useState, useCallback } from "react"
 import { Link } from "react-router-dom"
 
 export default function AboutPage() {
+  const [squishing, setSquishing] = useState(false)
+
+  const handleMascotClick = useCallback(() => {
+    // Re-trigger by clearing the class first, then setting it next tick
+    setSquishing(false)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setSquishing(true)
+      })
+    })
+    // Auto-clear after animation completes so the bob resumes
+    setTimeout(() => setSquishing(false), 450)
+  }, [])
+
   return (
     <div className="w-full min-h-[100dvh] bg-[#0F0464] flex flex-col font-space">
       {/* Top Bar — identical to LandingPage */}
@@ -87,6 +102,31 @@ export default function AboutPage() {
           Made by Ali Kashif - TL Education, Research &amp; Reporting, AIESEC in NUST
         </a>
       </footer>
+
+      {/* ── Decorative mascot widget ── */}
+      <div
+        role="img"
+        aria-label="Mascot"
+        onClick={handleMascotClick}
+        style={{
+          position: "fixed",
+          bottom: 0,
+          right: 24,
+          width: 130,
+          lineHeight: 0,
+          cursor: "pointer",
+          zIndex: 50,
+          transformOrigin: "bottom center",
+        }}
+        className={squishing ? "mascot-squish" : "mascot-bob"}
+      >
+        <img
+          src="/mascot-avatar-512.png"
+          alt=""
+          draggable={false}
+          style={{ width: "100%", height: "auto", display: "block", userSelect: "none" }}
+        />
+      </div>
     </div>
   )
 }
