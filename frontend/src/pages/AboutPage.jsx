@@ -1,74 +1,28 @@
 import * as React from "react"
-import { useState, useRef, useCallback } from "react"
+import { useRef } from "react"
 import { Link } from "react-router-dom"
+import { motion, useMotionValue, useTransform, useVelocity, animate } from "framer-motion"
 
 const MASCOT_W = 110 // px — rendered width
 
 export default function AboutPage() {
-  // null = not yet placed; once dragged, stores { x, y } for top-left corner
-  const [pos, setPos] = useState(null)
-  const [isDragging, setIsDragging] = useState(false)
-  const dragOffset = useRef({ x: 0, y: 0 })
+  // Ref for the full-page container — used as dragConstraints so the
+  // mascot can never be dragged fully outside the viewport
+  const constraintsRef = useRef(null)
 
-  // Clamp so the mascot can't go fully off-screen
-  const clamp = useCallback((x, y) => {
-    const maxX = window.innerWidth  - MASCOT_W
-    const maxY = window.innerHeight - MASCOT_W // height ≈ width for our square-ish mascot
-    return {
-      x: Math.max(0, Math.min(x, maxX)),
-      y: Math.max(0, Math.min(y, maxY)),
-    }
-  }, [])
+  // Track x velocity so we can derive tilt rotation while dragging
+  const dragX   = useMotionValue(0)
+  const velX    = useVelocity(dragX)
+  // Map horizontal velocity (±1 200 px/s) to rotation (±22 deg), clamped
+  const rotate  = useTransform(velX, [-1200, 0, 1200], [-22, 0, 22], { clamp: true })
 
-  // ── Mouse handlers ──────────────────────────────────────────────
-  const onMouseDown = useCallback((e) => {
-    e.preventDefault()
-    const rect = e.currentTarget.getBoundingClientRect()
-    dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top }
-
-    // Initialise position from current rendered location on first drag
-    const startPos = clamp(e.clientX - dragOffset.current.x, e.clientY - dragOffset.current.y)
-    setPos(startPos)
-    setIsDragging(true)
-
-    const onMove = (me) => {
-      setPos(clamp(me.clientX - dragOffset.current.x, me.clientY - dragOffset.current.y))
-    }
-    const onUp = () => {
-      setIsDragging(false)
-      window.removeEventListener("mousemove", onMove)
-      window.removeEventListener("mouseup",   onUp)
-    }
-    window.addEventListener("mousemove", onMove)
-    window.addEventListener("mouseup",   onUp)
-  }, [clamp])
-
-  // ── Touch handlers ──────────────────────────────────────────────
-  const onTouchStart = useCallback((e) => {
-    const touch = e.touches[0]
-    const rect  = e.currentTarget.getBoundingClientRect()
-    dragOffset.current = { x: touch.clientX - rect.left, y: touch.clientY - rect.top }
-
-    const startPos = clamp(touch.clientX - dragOffset.current.x, touch.clientY - dragOffset.current.y)
-    setPos(startPos)
-    setIsDragging(true)
-
-    const onMove = (te) => {
-      te.preventDefault()
-      const t = te.touches[0]
-      setPos(clamp(t.clientX - dragOffset.current.x, t.clientY - dragOffset.current.y))
-    }
-    const onEnd = () => {
-      setIsDragging(false)
-      window.removeEventListener("touchmove", onMove)
-      window.removeEventListener("touchend",  onEnd)
-    }
-    window.addEventListener("touchmove", onMove, { passive: false })
-    window.addEventListener("touchend",  onEnd)
-  }, [clamp])
+  const handleDragEnd = () => {
+    // Spring the rotation back to upright after release
+    animate(rotate, 0, { type: "spring", stiffness: 120, damping: 14 })
+  }
 
   return (
-    <div className="w-full min-h-[100dvh] bg-[#0F0464] flex flex-col font-space">
+    <div ref={constraintsRef} className="w-full min-h-[100dvh] bg-[#0F0464] flex flex-col font-space">
       {/* Top Bar — identical to LandingPage */}
       <header className="w-full px-4 sm:px-6 py-4 flex items-center justify-between select-none">
         {/* Left: Mascot Icon + Wordmark */}
@@ -153,34 +107,43 @@ export default function AboutPage() {
         </a>
       </footer>
 
-      {/* ── Decorative draggable mascot ── */}
-      <div
+      {/* ── Decorative draggable mascot (Framer Motion) ── */}
+      <motion.div
         role="img"
         aria-label="Drag me around"
-        onMouseDown={onMouseDown}
-        onTouchStart={onTouchStart}
+        drag
+        dragConstraints={constraintsRef}
+        dragElastic={0.08}
+        dragTransition={{
+          power: 0.3,
+          timeConstant: 220,
+          bounceStiffness: 380,
+          bounceDamping: 22,
+        }}
+        onDragEnd={handleDragEnd}
         style={{
+          x: dragX,
+          rotate,
           position: "fixed",
-          // Default resting spot: bottom-right, sitting on the viewport edge
-          ...(pos
-            ? { top: pos.y, left: pos.x, bottom: "auto", right: "auto" }
-            : { bottom: 0, right: 24 }
-          ),
+          bottom: 0,
+          right: 24,
           width: MASCOT_W,
           lineHeight: 0,
-          cursor: isDragging ? "grabbing" : "grab",
           zIndex: 50,
-          userSelect: "none",
           touchAction: "none",
+          userSelect: "none",
+          cursor: "grab",
         }}
+        whileDrag={{ cursor: "grabbing" }}
       >
         <img
           src="/mascot-avatar-512.png"
           alt=""
           draggable={false}
-          style={{ width: "100%", height: "auto", display: "block", userSelect: "none", pointerEvents: "none" }}
+          style={{ width: "100%", height: "auto", display: "block",
+                   userSelect: "none", pointerEvents: "none" }}
         />
-      </div>
+      </motion.div>
     </div>
   )
 }
