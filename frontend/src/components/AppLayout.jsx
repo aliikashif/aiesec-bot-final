@@ -89,7 +89,7 @@ export default function AppLayout() {
             onChange={(e) => setPortfolio(e.target.value)}
             className="ml-auto bg-white/10 text-[#F5F5F0] border border-white/20 rounded-lg px-2.5 py-1 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#63B2FB] cursor-pointer max-w-[140px] truncate"
           >
-            <option value="finance_legal" className="bg-[#0F0464] text-[#F5F5F0]">Finance & Legal</option>
+            <option value="finance_legal" className="bg-[#0F0464] text-[#F5F5F0]">Finance & Legalities</option>
             <option value="business_development" className="bg-[#0F0464] text-[#F5F5F0]">Business Development</option>
             <option value="exchange" className="bg-[#0F0464] text-[#F5F5F0]">Exchange</option>
             <option value="mxp" className="bg-[#0F0464] text-[#F5F5F0]">MXP</option>

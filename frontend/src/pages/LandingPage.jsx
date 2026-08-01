@@ -21,6 +21,12 @@ export default function LandingPage() {
 
         {/* Right: Navigation Links */}
         <nav className="flex items-center gap-4 sm:gap-6">
+          <Link
+            to="/about"
+            className="text-xs sm:text-sm font-semibold text-[#F5F5F0] hover:underline transition-all"
+          >
+            About
+          </Link>
           <Link 
             to="/documents" 
             className="text-xs sm:text-sm font-semibold text-[#F5F5F0] hover:underline transition-all"

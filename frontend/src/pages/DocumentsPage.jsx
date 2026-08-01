@@ -4,7 +4,7 @@ import { ShaderAnimation } from "@/components/shader-animation"
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 const PORTFOLIO_META = {
-  finance_legal: { label: "Finance & Legal", icon: "" },
+  finance_legal: { label: "Finance & Legalities", icon: "" },
   business_development: { label: "Business Development", icon: "" },
   exchange: { label: "Exchange", icon: "" },
   mxp: { label: "MXP", icon: "" },
