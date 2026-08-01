@@ -5,7 +5,7 @@ This module handles all Retrieval-Augmented Generation (RAG) logic:
   1. Connect to Supabase pgvector database
   2. Retrieve the top-k most relevant document chunks for a question
   3. Build a conversational prompt combining history + chunks + question
-  4. Call the Groq LLM (llama-3.1-8b-instant) for a grounded answer
+  4. Call the Groq LLM (openai/gpt-oss-20b) for a grounded answer
   5. Return the answer alongside source document names
 
 Conversation memory is handled by ConversationalRetrievalChain:
