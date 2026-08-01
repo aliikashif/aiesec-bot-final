@@ -24,9 +24,9 @@ export default function AboutPage() {
     //    a slight negative overshoot gives the soft landing bounce feel.
     animate(dragY, 0, {
       type: "spring",
-      stiffness: 90,
-      damping: 12,
-      mass: 1.2,
+      stiffness: 55,
+      damping: 9,
+      mass: 1.6,
     })
     // 2. Level the rotation back to upright in sync with the fall
     animate(rotate, 0, { type: "spring", stiffness: 100, damping: 16 })
