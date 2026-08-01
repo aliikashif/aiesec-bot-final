@@ -146,26 +146,4 @@
   animation: bounce-dot 1.2s infinite ease-in-out both;
 }
 
-/* ── Mascot idle bob ────────────────────────────────────────────── */
-@keyframes mascot-bob {
-  0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-8px); }
-}
-
-.mascot-bob {
-  animation: mascot-bob 3.2s ease-in-out infinite;
-}
-
-/* ── Mascot click squish-bounce ─────────────────────────────────── */
-@keyframes mascot-squish {
-  0%   { transform: scaleX(1)    scaleY(1); }
-  20%  { transform: scaleX(1.12) scaleY(0.84); }
-  50%  { transform: scaleX(0.94) scaleY(1.08); }
-  70%  { transform: scaleX(1.04) scaleY(0.97); }
-  100% { transform: scaleX(1)    scaleY(1); }
-}
-
-.mascot-squish {
-  animation: mascot-squish 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
-}
 

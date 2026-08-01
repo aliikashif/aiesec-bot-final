@@ -1,21 +1,71 @@
 import * as React from "react"
-import { useState, useCallback } from "react"
+import { useState, useRef, useCallback } from "react"
 import { Link } from "react-router-dom"
 
-export default function AboutPage() {
-  const [squishing, setSquishing] = useState(false)
+const MASCOT_W = 110 // px — rendered width
 
-  const handleMascotClick = useCallback(() => {
-    // Re-trigger by clearing the class first, then setting it next tick
-    setSquishing(false)
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setSquishing(true)
-      })
-    })
-    // Auto-clear after animation completes so the bob resumes
-    setTimeout(() => setSquishing(false), 450)
+export default function AboutPage() {
+  // null = not yet placed; once dragged, stores { x, y } for top-left corner
+  const [pos, setPos] = useState(null)
+  const [isDragging, setIsDragging] = useState(false)
+  const dragOffset = useRef({ x: 0, y: 0 })
+
+  // Clamp so the mascot can't go fully off-screen
+  const clamp = useCallback((x, y) => {
+    const maxX = window.innerWidth  - MASCOT_W
+    const maxY = window.innerHeight - MASCOT_W // height ≈ width for our square-ish mascot
+    return {
+      x: Math.max(0, Math.min(x, maxX)),
+      y: Math.max(0, Math.min(y, maxY)),
+    }
   }, [])
+
+  // ── Mouse handlers ──────────────────────────────────────────────
+  const onMouseDown = useCallback((e) => {
+    e.preventDefault()
+    const rect = e.currentTarget.getBoundingClientRect()
+    dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+
+    // Initialise position from current rendered location on first drag
+    const startPos = clamp(e.clientX - dragOffset.current.x, e.clientY - dragOffset.current.y)
+    setPos(startPos)
+    setIsDragging(true)
+
+    const onMove = (me) => {
+      setPos(clamp(me.clientX - dragOffset.current.x, me.clientY - dragOffset.current.y))
+    }
+    const onUp = () => {
+      setIsDragging(false)
+      window.removeEventListener("mousemove", onMove)
+      window.removeEventListener("mouseup",   onUp)
+    }
+    window.addEventListener("mousemove", onMove)
+    window.addEventListener("mouseup",   onUp)
+  }, [clamp])
+
+  // ── Touch handlers ──────────────────────────────────────────────
+  const onTouchStart = useCallback((e) => {
+    const touch = e.touches[0]
+    const rect  = e.currentTarget.getBoundingClientRect()
+    dragOffset.current = { x: touch.clientX - rect.left, y: touch.clientY - rect.top }
+
+    const startPos = clamp(touch.clientX - dragOffset.current.x, touch.clientY - dragOffset.current.y)
+    setPos(startPos)
+    setIsDragging(true)
+
+    const onMove = (te) => {
+      te.preventDefault()
+      const t = te.touches[0]
+      setPos(clamp(t.clientX - dragOffset.current.x, t.clientY - dragOffset.current.y))
+    }
+    const onEnd = () => {
+      setIsDragging(false)
+      window.removeEventListener("touchmove", onMove)
+      window.removeEventListener("touchend",  onEnd)
+    }
+    window.addEventListener("touchmove", onMove, { passive: false })
+    window.addEventListener("touchend",  onEnd)
+  }, [clamp])
 
   return (
     <div className="w-full min-h-[100dvh] bg-[#0F0464] flex flex-col font-space">
@@ -103,28 +153,32 @@ export default function AboutPage() {
         </a>
       </footer>
 
-      {/* ── Decorative mascot widget ── */}
+      {/* ── Decorative draggable mascot ── */}
       <div
         role="img"
-        aria-label="Mascot"
-        onClick={handleMascotClick}
+        aria-label="Drag me around"
+        onMouseDown={onMouseDown}
+        onTouchStart={onTouchStart}
         style={{
           position: "fixed",
-          bottom: 0,
-          right: 24,
-          width: 130,
+          // Default resting spot: bottom-right, sitting on the viewport edge
+          ...(pos
+            ? { top: pos.y, left: pos.x, bottom: "auto", right: "auto" }
+            : { bottom: 0, right: 24 }
+          ),
+          width: MASCOT_W,
           lineHeight: 0,
-          cursor: "pointer",
+          cursor: isDragging ? "grabbing" : "grab",
           zIndex: 50,
-          transformOrigin: "bottom center",
+          userSelect: "none",
+          touchAction: "none",
         }}
-        className={squishing ? "mascot-squish" : "mascot-bob"}
       >
         <img
           src="/mascot-avatar-512.png"
           alt=""
           draggable={false}
-          style={{ width: "100%", height: "auto", display: "block", userSelect: "none" }}
+          style={{ width: "100%", height: "auto", display: "block", userSelect: "none", pointerEvents: "none" }}
         />
       </div>
     </div>
